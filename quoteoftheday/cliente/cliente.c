@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 
 #define PROGRAM_NAME "qotd-udp-client-Renero-Balgañon"
 
@@ -12,9 +13,12 @@ void paramError();
 void noParamError();
 void ayuda();
 void ipError(const char *in);
+void portError();
+void setPort(const int port);
 
 // Variables Globales
 struct in_addr *server_ip;
+uint16_t server_port;
 
 int main(int argc, char const *argv[])
 {
@@ -30,9 +34,23 @@ int main(int argc, char const *argv[])
     }
 
     output(1, argv, argc);
+
     if (argc - 1 == 3)
     {
         output(2, argv, argc);
+    }
+    else
+    {
+        struct servent *aux;
+        aux = getservbyname("qotd", "udp");
+        if (aux == NULL)
+        {
+            portError();
+        }
+        else
+        {
+            setPort(aux->s_port);
+        }
     }
     //Fin bloque datos de entrada
 
@@ -51,7 +69,16 @@ void output(int const pos, char const *argv[], const int total)
     }
     else if (strcmp(argv[pos], "-p") == 0)
     {
-        printf("Esto es el puerto\n");
+        // printf("Esto es el puerto\n");
+        int port;
+        if (sscanf(argv[pos + 1], "%d", &port) != 1)
+        {
+            portError();
+        }
+        else
+        {
+            setPort(port);
+        }
     }
     else
     {
@@ -89,4 +116,15 @@ void ipError(const char *in)
 {
     printf("\nLa ip: '%s' no es válidad\n\n", in);
     exit(-1);
+}
+
+void portError()
+{
+    printf("\nEl puerto no es válido o no se ha podido encontrar\n\n");
+    exit(-1);
+}
+
+void setPort(const int port)
+{
+    server_port = htons(port);
 }
