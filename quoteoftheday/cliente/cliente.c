@@ -18,15 +18,15 @@ int main(int argc, char const *argv[])
         output(1, argv, argc - 1);
     }
 
-    if ((argc - 1) % 2 != 0 | (argc > 5))
+    if ((argc - 1) > 1 && (argc - 1) != 3)
     {
         paramError();
     }
 
-    int i;
-    for (i = 1; i < argc; i += 2)
+    output(1, argv, argc);
+    if (argc - 1 == 3)
     {
-        output(i, argv, argc);
+        output(2, argv, argc);
     }
 
     return 0;
@@ -36,16 +36,12 @@ void output(int const pos, char const *argv[], const int total)
 {
     if (strcmp(argv[pos], "-h") == 0)
     {
-        if (pos != 1 | total != 1)
+        if (pos != 1 || total != 1)
         {
             paramError();
         }
         printf("Esto es la ayuda\n");
         exit(0);
-    }
-    else if (strcmp(argv[pos], "-ip") == 0)
-    {
-        printf("Esto es la IP\n");
     }
     else if (strcmp(argv[pos], "-p") == 0)
     {
@@ -53,7 +49,11 @@ void output(int const pos, char const *argv[], const int total)
     }
     else
     {
-        paramError();
+        if (pos != 1)
+        {
+            paramError();
+        }
+        printf("Check IP\n");
     }
 }
 void paramError()
