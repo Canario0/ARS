@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define PROGRAM_NAME "qotd-udp-client-Renero-Balgañon"
+
 void output(int const pos, char const *argv[], const int total);
 void paramError();
 void noParamError();
@@ -40,7 +42,8 @@ void output(int const pos, char const *argv[], const int total)
         {
             paramError();
         }
-        printf("Esto es la ayuda\n");
+        printf("\nUso: ./%s direccion.IP.servidor [-p puerto-servidor]\n\n", PROGRAM_NAME);
+        printf("Opciones:\n\t-p\n\t   Si no se proporciona un número de puesto se usará el puerto por defecto del servicio Quote of the Day.\n\n");
         exit(0);
     }
     else if (strcmp(argv[pos], "-p") == 0)
@@ -58,12 +61,12 @@ void output(int const pos, char const *argv[], const int total)
 }
 void paramError()
 {
-    printf("Número de parámetros erroneo\nPruebe './cliente -h' para más información.\n");
+    printf("Número de parámetros erroneo\nPruebe './%s -h' para más información.\n", PROGRAM_NAME);
     exit(-1);
 }
 
 void noParamError()
 {
-    printf("Cliente: debe indicar almenos una direción IP\nPruebe './cliente -h' para más información.\n");
+    printf("Cliente: debe indicar almenos una direción IP\nPruebe './%s -h' para más información.\n", PROGRAM_NAME);
     exit(-1);
 }
