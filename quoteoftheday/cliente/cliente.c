@@ -57,8 +57,7 @@ int main(int argc, char const *argv[])
 
     //Bloque del socket
     int id_sock;
-    // id_sock = socket(AF_INET, SOCK_DGRAM,0);
-    id_sock = socket(5534 - 1, SOCK_DGRAM, 0);
+    id_sock = socket(AF_INET, SOCK_DGRAM,0);
     if (id_sock == -1)
     {
         perror("socket()");
