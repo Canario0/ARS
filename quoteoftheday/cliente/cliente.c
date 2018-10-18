@@ -102,7 +102,7 @@ int main(int argc, char const *argv[])
         }
         exit(-1);
     }
-    printf("\033[1;32mCliente: %s\033[0m\n", data_out);
+    printf("\033[1;32mCliente:\033[0m %s\n", data_out);
     //Fin de sendto
 
     //Bloque de recvfrom
@@ -120,7 +120,7 @@ int main(int argc, char const *argv[])
         }
         exit(-1);
     }
-    printf("\033[1;32mServidor: %s\033[0m\n", data_in);
+    printf("\033[1;32mServidor:\033[0m %s\n", data_in);
     //Fin bloque de recvfrom
 
     //close
