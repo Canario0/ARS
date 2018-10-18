@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/types.h>
+#include <sys/unistd.h>
 
 #define PROGRAM_NAME "qotd-udp-client-Renero-Balgañon"
 
@@ -108,7 +109,8 @@ int main(int argc, char const *argv[])
 
     //Bloque de recvfrom
     char *data_in;
-    error = recvfrom(id_sock, data_in, 100, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+    int len= sizeof(remote_addr);
+    error = recvfrom(id_sock, data_in, 100, 0, (struct sockaddr *)&remote_addr, &len);
     if (error < 0)
     {
         perror("recvfrom()");
