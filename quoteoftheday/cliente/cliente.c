@@ -19,7 +19,7 @@ void portError();
 void setPort(const int port);
 
 // Variables Globales
-struct in_addr *server_ip;
+struct in_addr server_ip;
 uint16_t server_port;
 
 int main(int argc, char const *argv[])
@@ -92,7 +92,7 @@ int main(int argc, char const *argv[])
     struct sockaddr_in remote_addr;
     remote_addr.sin_family = AF_INET;
     remote_addr.sin_port = server_port;
-    remote_addr.sin_addr = *server_ip;
+    remote_addr.sin_addr = server_ip;
     error = sendto(id_sock, data_out, sizeof(data_out), 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
     if (error < 0)
     {
@@ -110,7 +110,7 @@ int main(int argc, char const *argv[])
     //Bloque de recvfrom
     char *data_in;
     int len= sizeof(remote_addr);
-    error = recvfrom(id_sock, data_in, 100, 0, (struct sockaddr *)&remote_addr, &len);
+    error = recvfrom(id_sock, data_in, 512, 0, (struct sockaddr *)&remote_addr, &len);
     if (error < 0)
     {
         perror("recvfrom()");
@@ -165,7 +165,7 @@ void output(int const pos, char const *argv[], const int total)
             paramError();
         }
 
-        if (inet_aton(argv[pos], server_ip) == 0)
+        if (inet_aton(argv[pos], &server_ip) == 0)
         {
             ipError(argv[pos]);
         }
