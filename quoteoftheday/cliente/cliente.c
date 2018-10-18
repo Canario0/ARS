@@ -35,11 +35,11 @@ int main(int argc, char const *argv[])
         paramError();
     }
 
-    output(1, argv, argc);
+    output(1, argv, argc - 1);
 
     if (argc - 1 == 3)
     {
-        output(2, argv, argc);
+        output(2, argv, argc - 1);
     }
     else
     {
@@ -49,7 +49,7 @@ int main(int argc, char const *argv[])
         {
             portError();
         }
-        server_port= aux->s_port;
+        server_port = aux->s_port;
     }
     //Fin bloque datos de entrada
 
