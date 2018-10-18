@@ -63,6 +63,7 @@ int main(int argc, char const *argv[])
         perror("socket()");
         exit(-1);
     }
+    printf("Cliente: id de socket %d", id_sock);
     //Fin bloque del socket
     return 0;
 }
