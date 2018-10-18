@@ -105,6 +105,7 @@ int main(int argc, char const *argv[])
         }
         exit(-1);
     }
+    printf("Mandado: %s\n", data_out);
     //Fin de sendto
 
     //Bloque de recvfrom
