@@ -1,3 +1,4 @@
+// Practica tema 5, Renero Balgañón Pablo
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +46,7 @@ int main(int argc, char const *argv[])
     {
         struct servent *aux;
         aux = getservbyname("qotd", "udp");
-        if (&aux == NULL)
+        if (!aux)
         {
             portError();
         }
