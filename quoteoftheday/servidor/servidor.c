@@ -1,46 +1,38 @@
 // Practica tema 5, Renero Balgañón Pablo
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 #include <sys/types.h>
-#include <sys/unistd.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
-#define PROGRAM_NAME "qotd-udp-client-Renero-Balgañon"
+#define PROGRAM_NAME "qotd-udp-server-Renero-Balgañon"
+#define MAXLENGTH 100
 
 void output(int const pos, char const *argv[], const int total);
 void paramError();
-void noParamError();
 void ayuda();
 void ipError(const char *in);
 void portError();
 void setPort(const int port);
 
 // Variables Globales
-struct in_addr server_ip;
-uint16_t server_port;
+uint16_t local_port;
 
 int main(int argc, char const *argv[])
 {
     // Bloque datos de entrada
-    if (argc <= 1)
-    {
-        noParamError();
-    }
-
-    if ((argc - 1) > 1 && (argc - 1) != 3)
+    if ((argc - 1) > 2)
     {
         paramError();
     }
 
-    output(1, argv, argc - 1);
-
-    if (argc - 1 == 3)
+    if ((argc - 1) <= 2 && (argc - 1) > 0)
     {
-        output(2, argv, argc - 1);
+        output(1, argv, argc - 1);
     }
     else
     {
@@ -50,13 +42,14 @@ int main(int argc, char const *argv[])
         {
             portError();
         }
-        server_port = aux->s_port;
+        local_port = aux->s_port;
     }
     //Fin bloque datos de entrada
 
     //Bloque del socket
     int id_sock;
     id_sock = socket(AF_INET, SOCK_DGRAM, 0);
+
     if (id_sock == -1)
     {
         perror("socket()");
@@ -69,9 +62,9 @@ int main(int argc, char const *argv[])
     int error;
     struct sockaddr_in local_addr;
     local_addr.sin_family = AF_INET;
-    local_addr.sin_port = 0;
+    local_addr.sin_port = local_port;
     local_addr.sin_addr.s_addr = INADDR_ANY;
-    
+
     error = bind(id_sock, (struct sockaddr *)&local_addr, sizeof(local_addr));
     if (error < 0)
     {
@@ -86,16 +79,12 @@ int main(int argc, char const *argv[])
     }
     //Fin bloque de bind
 
-    //Bloque de sendto
-    char data_out[] = "Some random data";
-    struct sockaddr_in remote_addr;
-    remote_addr.sin_family = AF_INET;
-    remote_addr.sin_port = server_port;
-    remote_addr.sin_addr = server_ip;
-    error = sendto(id_sock, data_out, sizeof(data_out), 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+    //Bloque de listen
+    error = listen(id_sock, 10);
+
     if (error < 0)
     {
-        perror("sendto()");
+        perror("listen()");
         error = close(id_sock);
         if (error < 0)
         {
@@ -104,34 +93,26 @@ int main(int argc, char const *argv[])
         }
         exit(-1);
     }
-    printf("\033[1;32mCliente:\033[0m %s\n", data_out);
-    //Fin de sendto
+    //Fin bloque de listen
 
-    //Bloque de recvfrom
-    char data_in[512];
-    socklen_t len = sizeof(remote_addr);
-    error = recvfrom(id_sock, &data_in, 512, 0, (struct sockaddr *)&remote_addr, &len);
-    if (error < 0)
+    //Bloque de escucha
+    char data_out[] = "Quote Of The Day from vm2511:\n";
+    while (1)
     {
-        perror("recvfrom()");
-        error = close(id_sock);
-        if (error < 0)
+        static char buffQuote[MAXLENGTH];
+        system("/usr/games/fortune -s > /tmp/tt.txt");
+        FILE *fich = fopen("/tmp/tt.txt", "r");
+        int nc = 0;
+        do
         {
-            perror("close()");
-            exit(-1);
-        }
-        exit(-1);
+            buffQuote[nc++] = fgetc(fich);
+        } while (nc < MAXLENGTH - 1);
+        fclose(fich);
+        strcat(data_out, buffQuote);
+        printf("%s\n", data_out);
     }
-    printf("\033[1;32mServidor:\033[0m %s\n", data_in);
-    //Fin bloque de recvfrom
 
-    //close
-    error = close(id_sock);
-    if (error < 0)
-    {
-        perror("close()");
-        exit(-1);
-    }
+    //Fin bloque de escucha
     return 0;
 }
 
@@ -149,6 +130,8 @@ void output(int const pos, char const *argv[], const int total)
     {
         // printf("Esto es el puerto\n");
         int port;
+        if (total != 2)
+            paramError();
         if (sscanf(argv[pos + 1], "%d", &port) != 1)
         {
             portError();
@@ -158,18 +141,6 @@ void output(int const pos, char const *argv[], const int total)
             setPort(port);
         }
     }
-    else
-    {
-        if (pos != 1)
-        {
-            paramError();
-        }
-
-        if (inet_aton(argv[pos], &server_ip) == 0)
-        {
-            ipError(argv[pos]);
-        }
-    }
 }
 void paramError()
 {
@@ -177,15 +148,9 @@ void paramError()
     exit(-1);
 }
 
-void noParamError()
-{
-    printf("Cliente: debe indicar almenos una direción IP\nPruebe './%s -h' para más información.\n", PROGRAM_NAME);
-    exit(-1);
-}
-
 void ayuda()
 {
-    printf("\nUso: ./%s direccion.IP.servidor [-p puerto-servidor]\n\n", PROGRAM_NAME);
+    printf("\nUso: ./%s [-p puerto-servidor]\n\n", PROGRAM_NAME);
     printf("Opciones:\n\t-p\n\t   Si no se proporciona un número de puesto se usará el puerto por defecto del servicio Quote of the Day.\n\n");
     exit(0);
 }
@@ -204,5 +169,5 @@ void portError()
 
 void setPort(const int port)
 {
-    server_port = htons(port);
+    local_port = htons(port);
 }
