@@ -49,8 +49,7 @@ int main(int argc, char const *argv[])
         {
             portError();
         }
-        printf("Puerto:%d", aux->s_port);
-        setPort(aux->s_port);
+        server_port= aux->s_port;
     }
     //Fin bloque datos de entrada
 
@@ -62,7 +61,7 @@ int main(int argc, char const *argv[])
         perror("socket()");
         exit(-1);
     }
-    printf("Cliente: id de socket %d\n", id_sock);
+    printf("Id de socket %d\n\n", id_sock);
     //Fin bloque del socket
 
     //Bloque de bind
@@ -103,7 +102,7 @@ int main(int argc, char const *argv[])
         }
         exit(-1);
     }
-    printf("Mandado: %s\n", data_out);
+    printf("Cliente: %s\n", data_out);
     //Fin de sendto
 
     //Bloque de recvfrom
@@ -121,7 +120,7 @@ int main(int argc, char const *argv[])
         }
         exit(-1);
     }
-    printf("He recibido: %s", data_in);
+    printf("Servidor: %s", data_in);
     //Fin bloque de recvfrom
 
     //close
