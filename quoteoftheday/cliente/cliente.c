@@ -77,11 +77,11 @@ int main(int argc, char const *argv[])
     {
         perror("bind()");
         error = close(id_sock);
-    if (error < 0)
-    {
-        perror("close()");
-        exit(-1);
-    } 
+        if (error < 0)
+        {
+            perror("close()");
+            exit(-1);
+        }
         exit(-1);
     }
     //Fin bloque de bind
