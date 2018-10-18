@@ -45,14 +45,12 @@ int main(int argc, char const *argv[])
     {
         struct servent *aux;
         aux = getservbyname("qotd", "udp");
-        if (aux == NULL)
+        if (&aux == NULL)
         {
             portError();
         }
-        else
-        {
-            setPort(aux->s_port);
-        }
+        printf("Puerto:%d", aux->s_port);
+        setPort(aux->s_port);
     }
     //Fin bloque datos de entrada
 
@@ -109,8 +107,8 @@ int main(int argc, char const *argv[])
     //Fin de sendto
 
     //Bloque de recvfrom
-   char data_in[512];
-    socklen_t len= sizeof(remote_addr);
+    char data_in[512];
+    socklen_t len = sizeof(remote_addr);
     error = recvfrom(id_sock, &data_in, 512, 0, (struct sockaddr *)&remote_addr, &len);
     if (error < 0)
     {
