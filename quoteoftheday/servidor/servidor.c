@@ -79,22 +79,6 @@ int main(int argc, char const *argv[])
     }
     //Fin bloque de bind
 
-    //Bloque de listen
-    error = listen(id_sock, 10);
-
-    if (error < 0)
-    {
-        perror("listen()");
-        error = close(id_sock);
-        if (error < 0)
-        {
-            perror("close()");
-            exit(-1);
-        }
-        exit(-1);
-    }
-    //Fin bloque de listen
-
     //Bloque de escucha
     char data_out[] = "Quote Of The Day from vm2511:\n";
     while (1)
