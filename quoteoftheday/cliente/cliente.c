@@ -73,7 +73,7 @@ int main(int argc, char const *argv[])
     local_addr.sin_family = AF_INET;
     local_addr.sin_port = 0;
     local_addr.sin_addr.s_addr = INADDR_ANY;
-    error = bind(19, (struct sockaddr *)&local_addr, sizeof(local_addr));
+    error = bind(id_sock, (struct sockaddr *)&local_addr, sizeof(local_addr));
     if (error < 0)
     {
         perror("bind()");
