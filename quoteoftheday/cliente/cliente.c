@@ -109,9 +109,9 @@ int main(int argc, char const *argv[])
     //Fin de sendto
 
     //Bloque de recvfrom
-    char *data_in;
+    char data_in[512];
     int len= sizeof(remote_addr);
-    error = recvfrom(id_sock, data_in, 512, 0, (struct sockaddr *)&remote_addr, &len);
+    error = recvfrom(id_sock, &data_in, 513, 0, (struct sockaddr *)&remote_addr, &len);
     if (error < 0)
     {
         perror("recvfrom()");
