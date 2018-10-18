@@ -57,14 +57,79 @@ int main(int argc, char const *argv[])
 
     //Bloque del socket
     int id_sock;
-    id_sock = socket(AF_INET, SOCK_DGRAM,0);
+    id_sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (id_sock == -1)
     {
         perror("socket()");
         exit(-1);
     }
-    printf("Cliente: id de socket %d", id_sock);
+    printf("Cliente: id de socket %d\n", id_sock);
     //Fin bloque del socket
+
+    //Bloque de bind
+    int error;
+    struct sockaddr_in local_addr;
+    local_addr.sin_family = AF_INET;
+    local_addr.sin_port = 0;
+    local_addr.sin_addr.s_addr = INADDR_ANY;
+    error = bind(19, (struct sockaddr *)&local_addr, sizeof(local_addr));
+    if (error < 0)
+    {
+        perror("bind()");
+        error = close(id_sock);
+    if (error < 0)
+    {
+        perror("close()");
+        exit(-1);
+    } 
+        exit(-1);
+    }
+    //Fin bloque de bind
+
+    //Bloque de sendto
+    char data_out[] = "Some random data";
+    struct sockaddr_in remote_addr;
+    remote_addr.sin_family = AF_INET;
+    remote_addr.sin_port = server_port;
+    remote_addr.sin_addr = *server_ip;
+    error = sendto(id_sock, data_out, sizeof(data_out), 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+    if (error < 0)
+    {
+        perror("sendto()");
+        error = close(id_sock);
+        if (error < 0)
+        {
+            perror("close()");
+            exit(-1);
+        }
+        exit(-1);
+    }
+    //Fin de sendto
+
+    //Bloque de recvfrom
+    char *data_in;
+    error = recvfrom(id_sock, data_in, 100, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+    if (error < 0)
+    {
+        perror("recvfrom()");
+        error = close(id_sock);
+        if (error < 0)
+        {
+            perror("close()");
+            exit(-1);
+        }
+        exit(-1);
+    }
+    printf("He recibido: %s", data_in);
+    //Fin bloque de recvfrom
+
+    //close
+    error = close(id_sock);
+    if (error < 0)
+    {
+        perror("close()");
+        exit(-1);
+    }
     return 0;
 }
 
