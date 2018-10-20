@@ -32,7 +32,7 @@ int main(int argc, char const *argv[])
         noParamError();
     }
 
-    //Compruebo que almenos existe un parámetro y que no hay más de tres.
+    //Compruebo que si existen más de un parámetro de entrada tienen que ser tres en total
     if ((argc - 1) > 1 && (argc - 1) != 3)
     {
         paramError();
