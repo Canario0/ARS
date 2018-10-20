@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 #define PROGRAM_NAME "qotd-udp-server-Renero-Balgañon"
-#define MAXLENGTH 100
+#define MAXLENGTH 482
 
 void output(int const pos, char const *argv[], const int total);
 void paramError();
@@ -86,7 +86,7 @@ int main(int argc, char const *argv[])
         strcpy(data_out, "Quote Of The Day from vm2511:\n");
         printf("%s\n", data_out);
         char buffQuote[MAXLENGTH];
-        system("/usr/games/fortune -s > /tmp/tt.txt");
+        system("/usr/games/fortune > /tmp/tt.txt");
         FILE *fich = fopen("/tmp/tt.txt", "r");
         int nc = 0;
         char aux;
