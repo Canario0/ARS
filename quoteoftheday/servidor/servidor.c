@@ -119,8 +119,8 @@ int main(int argc, char const *argv[])
             exit(-1);
         }
 
-        printf("Mensaje de la ip; %s\n", inet_ntoa(remote_addr.sin_addr));
-        printf("\033[1;32mMensaje:\033[0m %s\n", data_in);
+        printf("Mensaje de la ip: %s\n", inet_ntoa(remote_addr.sin_addr));
+        printf("\033[1;32mContenido:\033[0m %s\n", data_in);
 
         FILE *fich = fopen("/tmp/tt.txt", "r");
         if (!fich)
