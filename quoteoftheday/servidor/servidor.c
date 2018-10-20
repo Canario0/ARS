@@ -83,25 +83,115 @@ int main(int argc, char const *argv[])
 
     int i;
     char data_out[512] = "";
-    static char buffQuote[MAXLENGTH]="";
-    // while (1)
-    // {
-        strcpy(data_out, "Quote Of The Day from vm2511:\n");
-        printf("%s\n", data_out);
-        system("/usr/games/fortune > /tmp/tt.txt");
+    char data_in[512] = "";
+    static char buffQuote[MAXLENGTH] = "";
+    char *ip;
+    struct sockaddr_in remote_addr;
+    while (1)
+    {
+        if (!strcpy(data_out, "Quote Of The Day from vm2511:\n"))
+        {
+            perror("strcpy()");
+            error = close(id_sock);
+            if (error < 0)
+            {
+                perror("close()");
+                exit(-1);
+            }
+            exit(EXIT_FAILURE);
+        }
+
+        if (system("/usr/games/fortune -s > /tmp/tt.txt") == -1)
+        {
+            perror("system()");
+            exit(EXIT_FAILURE);
+        }
+
+        socklen_t len = sizeof(remote_addr);
+        error = recvfrom(id_sock, &data_in, 512, 0, (struct sockaddr *)&remote_addr, &len);
+        if (error < 0)
+        {
+            perror("recvfrom()");
+            error = close(id_sock);
+            if (error < 0)
+            {
+                perror("close()");
+                exit(-1);
+            }
+            exit(-1);
+        }
+
+        printf("Mensaje de la ip; %s\n", inet_ntoa(remote_addr.sin_addr));
+        printf("\033[1;32mMensaje:\033[0m %s\n", data_in);
+
         FILE *fich = fopen("/tmp/tt.txt", "r");
+        if (!fich)
+        {
+            perror("fopen()");
+            error = close(id_sock);
+            if (error < 0)
+            {
+                perror("close()");
+                exit(-1);
+            }
+            exit(EXIT_FAILURE);
+        }
         int nc = 0;
         char aux;
         aux = fgetc(fich);
         do
         {
+            if (ferror(fich) != 0)
+            {
+                perror("fgetc()");
+                error = close(id_sock);
+                if (error < 0)
+                {
+                    perror("close()");
+                    exit(-1);
+                }
+                exit(EXIT_FAILURE);
+            }
             buffQuote[nc++] = aux;
             aux = fgetc(fich);
         } while (nc < MAXLENGTH - 1 && aux != EOF);
-        fclose(fich);
-        strcat(data_out, buffQuote);
-        printf("%s\n", data_out);
-    // }
+
+        if (fclose(fich) == EOF)
+        {
+            perror("fclose()");
+            error = close(id_sock);
+            if (error < 0)
+            {
+                perror("close()");
+                exit(-1);
+            }
+            exit(EXIT_FAILURE);
+        }
+        if (!strcat(data_out, buffQuote))
+        {
+            perror("strcpy()");
+            error = close(id_sock);
+            if (error < 0)
+            {
+                perror("close()");
+                exit(-1);
+            }
+            exit(EXIT_FAILURE);
+        }
+        
+        error = sendto(id_sock, data_out, sizeof(data_out), 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+        if (error < 0)
+        {
+            perror("sendto()");
+            error = close(id_sock);
+            if (error < 0)
+            {
+                perror("close()");
+                exit(-1);
+            }
+            exit(-1);
+        }
+    }
 
     //Fin bloque de escucha
     return 0;
