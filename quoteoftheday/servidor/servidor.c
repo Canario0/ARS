@@ -82,10 +82,8 @@ int main(int argc, char const *argv[])
     //Bloque de escucha
 
     int i;
-    char data_out[512];
-    static char buffQuote[MAXLENGTH];
-    for(i = 0 ; i < MAXLENGTH; i++) buffQuote[i] ="";
-    for(i = 0 ; i < 512; i++) data_out[i] ="";
+    char data_out[512] = "";
+    static char buffQuote[MAXLENGTH]="";
     // while (1)
     // {
         strcpy(data_out, "Quote Of The Day from vm2511:\n");
