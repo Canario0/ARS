@@ -82,7 +82,7 @@ int main(int argc, char const *argv[])
     //Bloque de escucha
 
     char data_out[512] = "";
-    char data_in[512];
+    char data_in[512] = "";
     static char buffQuote[MAXLENGTH] = "";
     struct sockaddr_in remote_addr;
     while (1)
