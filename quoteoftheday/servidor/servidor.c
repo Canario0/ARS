@@ -80,21 +80,26 @@ int main(int argc, char const *argv[])
     //Fin bloque de bind
 
     //Bloque de escucha
-    char data_out[] = "Quote Of The Day from vm2511:\n";
-    while (1)
-    {
-        static char buffQuote[MAXLENGTH];
+    char data_out[512];
+    // while (1)
+    // {
+        strcpy(data_out, "Quote Of The Day from vm2511:\n");
+        printf("%s\n", data_out);
+        char buffQuote[MAXLENGTH];
         system("/usr/games/fortune -s > /tmp/tt.txt");
         FILE *fich = fopen("/tmp/tt.txt", "r");
         int nc = 0;
+        char aux;
+        aux = fgetc(fich);
         do
         {
-            buffQuote[nc++] = fgetc(fich);
-        } while (nc < MAXLENGTH - 1);
+            buffQuote[nc++] = aux;
+            aux = fgetc(fich);
+        } while (nc < MAXLENGTH - 1 && aux != EOF);
         fclose(fich);
         strcat(data_out, buffQuote);
         printf("%s\n", data_out);
-    }
+    // }
 
     //Fin bloque de escucha
     return 0;
