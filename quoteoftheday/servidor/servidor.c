@@ -81,11 +81,9 @@ int main(int argc, char const *argv[])
 
     //Bloque de escucha
 
-    int i;
     char data_out[512] = "";
     char data_in[512] = "";
     static char buffQuote[MAXLENGTH] = "";
-    char *ip;
     struct sockaddr_in remote_addr;
     while (1)
     {
@@ -178,7 +176,7 @@ int main(int argc, char const *argv[])
             }
             exit(EXIT_FAILURE);
         }
-        
+
         error = sendto(id_sock, data_out, sizeof(data_out), 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
         if (error < 0)
         {
