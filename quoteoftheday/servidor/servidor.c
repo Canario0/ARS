@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 #define PROGRAM_NAME "qotd-udp-server-Renero-Balgañon"
-#define MAXLENGTH 482
+#define MAXLENGTH 512
 
 void output(int const pos, char const *argv[], const int total);
 void paramError();
@@ -85,27 +85,14 @@ int main(int argc, char const *argv[])
 
     //Bloque de escucha
     //Buffers de entrada y salida
-    char data_out[512] = "";
-    char data_in[512] = "";
-    static char buffQuote[MAXLENGTH] = "";
+    char data_out[MAXLENGTH] = "";
+    char data_in[MAXLENGTH] = "";
     struct sockaddr_in remote_addr;
     socklen_t len = sizeof(remote_addr);
     while (1)
     {
-        //Primera parte de la cadena de salida
-        if (!strcpy(data_out, "Quote Of The Day from vm2511:\n"))
-        {
-            perror("strcpy()");
-            error = close(id_sock);
-            if (error < 0)
-            {
-                perror("close()");
-                exit(EXIT_FAILURE);
-            }
-            exit(EXIT_FAILURE);
-        }
-        //llamamos al sistema para ejecutar el comando fortune
-        if (system("/usr/games/fortune -s > /tmp/tt.txt") == -1)
+        //llamamos al sistema para ejecutar el comando fortune y aprovechamos para concatenar todo con las redirecciones de bash
+        if (system("/usr/bin/echo 'Quote Of The Day from vm2511:' > /tmp/tt.txt;/usr/games/fortune -s >> /tmp/tt.txt") == -1)
         {
             perror("system()");
             exit(EXIT_FAILURE);
@@ -157,25 +144,13 @@ int main(int argc, char const *argv[])
                 }
                 exit(EXIT_FAILURE);
             }
-            buffQuote[nc++] = aux;
+            data_out[nc++] = aux;
             aux = fgetc(fich);
         } while (nc < MAXLENGTH - 1 && aux != EOF);
         //cerramos el fichero
         if (fclose(fich) == EOF)
         {
             perror("fclose()");
-            error = close(id_sock);
-            if (error < 0)
-            {
-                perror("close()");
-                exit(EXIT_FAILURE);
-            }
-            exit(EXIT_FAILURE);
-        }
-        //concatenamos las cadenas
-        if (!strcat(data_out, buffQuote))
-        {
-            perror("strcpy()");
             error = close(id_sock);
             if (error < 0)
             {
