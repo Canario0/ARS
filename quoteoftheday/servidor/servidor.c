@@ -85,13 +85,14 @@ int main(int argc, char const *argv[])
     // Fin bloque de bind
 
     // Bloque de escucha
-    // Buffers de entrada y salida
-    char data_out[MAXLENGTH] = "";
+    // Buffer de entrada
     char data_in[MAXLENGTH] = "";
     struct sockaddr_in remote_addr;
     socklen_t len = sizeof(remote_addr);
     while (1)
     {
+        // Buffer de salida
+        char data_out[MAXLENGTH] = "";
         // llamamos al sistema para ejecutar el comando fortune y aprovechamos para concatenar todo con las redirecciones de bash
         if (system("/usr/bin/echo 'Quote Of The Day from vm2511:' > /tmp/tt.txt;/usr/games/fortune -s >> /tmp/tt.txt") == -1)
         {
