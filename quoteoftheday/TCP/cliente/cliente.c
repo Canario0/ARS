@@ -50,7 +50,7 @@ int main(int argc, char const *argv[])
     {
         // En el caso de que no tenga 3 parámetros quiere decir que el puerto que vamos usar es el por defecto del protocolo qotd
         struct servent *aux;
-        aux = getservbyname("qotd", "udp");
+        aux = getservbyname("qotd", "tcp");
         // Si el resultado es NULL imprimimos el mensaje de error
         if (!aux)
         {
