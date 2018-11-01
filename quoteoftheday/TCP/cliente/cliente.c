@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <sys/unistd.h>
 
-#define PROGRAM_NAME "qotd-udp-client-Renero-Balgañon"
+#define PROGRAM_NAME "qotd-tcp-client-Renero-Balgañon"
 
 void output(int const pos, char const *argv[], const int total);
 void paramError();
@@ -63,7 +63,7 @@ int main(int argc, char const *argv[])
     //Bloque del socket
     int id_sock;
     //Creamos el socket y comprobamos los posibles errores
-    id_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    id_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (id_sock == -1)
     {
         perror("socket()");
@@ -73,17 +73,39 @@ int main(int argc, char const *argv[])
     printf("Id de socket %d\n\n", id_sock);
     // Fin bloque del socket
 
-    // Bloque de bind
+    // // Bloque de bind
     int error;
-    struct sockaddr_in local_addr;
-    local_addr.sin_family = AF_INET;
-    local_addr.sin_port = 0;
-    local_addr.sin_addr.s_addr = INADDR_ANY;
-    // Hacemos el bind con el puerto y comprobamos los errores
-    error = bind(id_sock, (struct sockaddr *)&local_addr, sizeof(local_addr));
+    // struct sockaddr_in local_addr;
+    // local_addr.sin_family = AF_INET;
+    // local_addr.sin_port = 0;
+    // local_addr.sin_addr.s_addr = INADDR_ANY;
+    // // Hacemos el bind con el puerto y comprobamos los errores
+    // error = bind(id_sock, (struct sockaddr *)&local_addr, sizeof(local_addr));
+    // if (error < 0)
+    // {
+    //     perror("bind()");
+    //     // En el caso de que el bind falle el socket se queda encendido, por eso hay que cerrarlo
+    //     error = close(id_sock);
+    //     if (error < 0)
+    //     {
+    //         perror("close()");
+    //         exit(EXIT_FAILURE);
+    //     }
+    //     exit(EXIT_FAILURE);
+    // }
+    // // Fin bloque de bind
+
+    // Bloque de connect
+    // Información del servidor
+    struct sockaddr_in remote_addr;
+    remote_addr.sin_family = AF_INET;
+    remote_addr.sin_port = server_port;
+    remote_addr.sin_addr = server_ip;
+
+    error = connect(id_sock, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
     if (error < 0)
     {
-        perror("bind()");
+        perror("connect()");
         // En el caso de que el bind falle el socket se queda encendido, por eso hay que cerrarlo
         error = close(id_sock);
         if (error < 0)
@@ -93,40 +115,40 @@ int main(int argc, char const *argv[])
         }
         exit(EXIT_FAILURE);
     }
-    // Fin bloque de bind
 
-    // Bloque de sendto
-    // Datos que mandaremos al servidor
-    char data_out[] = "Some random data";
-    struct sockaddr_in remote_addr;
-    remote_addr.sin_family = AF_INET;
-    remote_addr.sin_port = server_port;
-    remote_addr.sin_addr = server_ip;
-    // Llamos a la directiva sendto para enviar los datos, en el caso de que falle cerramos el socket e imprimimos el error
-    error = sendto(id_sock, data_out, sizeof(data_out), 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
-    if (error < 0)
-    {
-        perror("sendto()");
-        error = close(id_sock);
-        if (error < 0)
-        {
-            perror("close()");
-            exit(EXIT_FAILURE);
-        }
-        exit(EXIT_FAILURE);
-    }
-    // Muestro por pantalla lo que he mandado, los elementos \033[1;32m y \033[0m son para imprimir con colores 
-    printf("\033[1;32mCliente:\033[0m %s\n", data_out);
-    // Fin de sendto
+    // Fin bloque connect
 
-    // Bloque de recvfrom
+    // // Bloque de sendto
+    // // Datos que mandaremos al servidor
+    // char data_out[] = "Some random data";
+    // struct sockaddr_in remote_addr;
+    // remote_addr.sin_family = AF_INET;
+    // remote_addr.sin_port = server_port;
+    // remote_addr.sin_addr = server_ip;
+    // // Llamos a la directiva sendto para enviar los datos, en el caso de que falle cerramos el socket e imprimimos el error
+    // error = sendto(id_sock, data_out, sizeof(data_out), 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+    // if (error < 0)
+    // {
+    //     perror("sendto()");
+    //     error = close(id_sock);
+    //     if (error < 0)
+    //     {
+    //         perror("close()");
+    //         exit(EXIT_FAILURE);
+    //     }
+    //     exit(EXIT_FAILURE);
+    // }
+    // // Muestro por pantalla lo que he mandado, los elementos \033[1;32m y \033[0m son para imprimir con colores
+    // printf("\033[1;32mCliente:\033[0m %s\n", data_out);
+    // // Fin de sendto
+
+    // Bloque de recv
     char data_in[512];
-    socklen_t len = sizeof(remote_addr);
     // Recibo los datos solicitados al servidor comprobando posibles errores
-    error = recvfrom(id_sock, &data_in, 512, 0, (struct sockaddr *)&remote_addr, &len);
+    error = recv(id_sock, &data_in, 512, 0);
     if (error < 0)
     {
-        perror("recvfrom()");
+        perror("recv()");
         error = close(id_sock);
         if (error < 0)
         {
@@ -137,9 +159,37 @@ int main(int argc, char const *argv[])
     }
     // Muestro por consola lo que manda el servidor
     printf("\033[1;32mServidor:\033[0m %s\n", data_in);
-    // Fin bloque de recvfrom
+    // Fin bloque de recv
 
     // close
+    // Cerramos conexión con el servidor
+    error = shutdown(id_sock, SHUT_RDWR);
+    if (error < 0)
+    {
+        perror("shutdown()");
+        error = close(id_sock);
+        if (error < 0)
+        {
+            perror("close()");
+            exit(EXIT_FAILURE);
+        }
+        exit(EXIT_FAILURE);
+    }
+
+    // recv para comprobar que el cliente se ha enterado.
+    error = recv(id_sock, &data_in, 0, 0);
+    if (error < 0)
+    {
+        perror("recv()");
+        error = close(id_sock);
+        if (error < 0)
+        {
+            perror("close()");
+            exit(EXIT_FAILURE);
+        }
+        exit(EXIT_FAILURE);
+    }
+
     // Cierro el socket
     error = close(id_sock);
     if (error < 0)
