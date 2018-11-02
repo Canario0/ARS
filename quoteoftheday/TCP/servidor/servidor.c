@@ -8,8 +8,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <signal.h>
 
-#define PROGRAM_NAME "qotd-udp-server-Renero-Balgañon"
+#define PROGRAM_NAME "qotd-tcp-server-Renero-Balgañon"
 #define MAXLENGTH 512
 
 void output(int const pos, char const *argv[], const int total);
@@ -17,9 +18,13 @@ void paramError();
 void ayuda();
 void portError();
 void setPort(const int port);
+void signal_handler(int signal);
+void childAction(struct sockaddr_in remote_addr);
 
 // Variables Globales
 uint16_t local_port;
+int id_sock;
+int fork_id;
 
 int main(int argc, char const *argv[])
 {
@@ -38,7 +43,7 @@ int main(int argc, char const *argv[])
     else
     {
         struct servent *aux;
-        aux = getservbyname("qotd", "udp");
+        aux = getservbyname("qotd", "tcp");
         if (!aux)
         {
             portError();
@@ -48,10 +53,9 @@ int main(int argc, char const *argv[])
     // Fin bloque datos de entrada
 
     // Bloque del socket
-    int id_sock;
 
     // Creamos el socket y comprobamos los posibles errores
-    id_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    id_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (id_sock == -1)
     {
         perror("socket()");
@@ -60,6 +64,13 @@ int main(int argc, char const *argv[])
     // Imprimo el id del socket para dar un feedback al usuario
     printf("Id de socket %d\n\n", id_sock);
     // Fin bloque del socket
+
+    // Bloque del signal
+    if (signal(SIGINT, &signal_handler) == SIG_ERR)
+    {
+        perror("signal()");
+    }
+    // Fin bloque del signal
 
     // Bloque de bind
     int error;
@@ -84,27 +95,20 @@ int main(int argc, char const *argv[])
     }
     // Fin bloque de bind
 
+    // Bloque de listen
+
+    listen(id_sock, 5);
+
     // Bloque de escucha
-    // Buffer de entrada
-    char data_in[MAXLENGTH] = "";
     struct sockaddr_in remote_addr;
     socklen_t len = sizeof(remote_addr);
+    int new_sock;
     while (1)
     {
-        // Buffer de salida
-        char data_out[MAXLENGTH] = "";
-        // llamamos al sistema para ejecutar el comando fortune y aprovechamos para concatenar todo con las redirecciones de bash
-        if (system("/usr/bin/echo 'Quote Of The Day from vm2511:' > /tmp/tt.txt;/usr/games/fortune -s >> /tmp/tt.txt") == -1)
+        new_sock = accept(id_sock, (struct sockaddr *)&remote_addr, &len);
+        if (new_sock < 0)
         {
-            perror("system()");
-            exit(EXIT_FAILURE);
-        }
-
-        // Esperamos que llegue un mensaje del cliente y comprobamos posibles errores
-        error = recvfrom(id_sock, &data_in, 512, 0, (struct sockaddr *)&remote_addr, &len);
-        if (error < 0)
-        {
-            perror("recvfrom()");
+            perror("accept()");
             error = close(id_sock);
             if (error < 0)
             {
@@ -113,15 +117,10 @@ int main(int argc, char const *argv[])
             }
             exit(EXIT_FAILURE);
         }
-        // Mostramos la ip del cliente y los datos recibidos
-        printf("Mensaje de la ip: %s\n", inet_ntoa(remote_addr.sin_addr));
-        printf("\033[1;32mContenido:\033[0m %s\n", data_in);
-
-        // leemos el quote hasta llenar 482 caracteres o el fin de fichero
-        FILE *fich = fopen("/tmp/tt.txt", "r");
-        if (!fich)
+        fork_id = fork();
+        if (fork_id < 0)
         {
-            perror("fopen()");
+            perror("fork()");
             error = close(id_sock);
             if (error < 0)
             {
@@ -130,61 +129,11 @@ int main(int argc, char const *argv[])
             }
             exit(EXIT_FAILURE);
         }
-        int nc = 0;
-        char aux;
-        aux = fgetc(fich);
-        do
+        if (fork_id == 0)
         {
-            if (ferror(fich) != 0)
-            {
-                perror("fgetc()");
-                error = close(id_sock);
-                if (error < 0)
-                {
-                    perror("close()");
-                    exit(EXIT_FAILURE);
-                }
-                exit(EXIT_FAILURE);
-            }
-            data_out[nc++] = aux;
-            aux = fgetc(fich);
-        } while (nc < MAXLENGTH - 1 && aux != EOF);
-
-        // cerramos el fichero
-        if (fclose(fich) == EOF)
-        {
-            perror("fclose()");
-            error = close(id_sock);
-            if (error < 0)
-            {
-                perror("close()");
-                exit(EXIT_FAILURE);
-            }
-            exit(EXIT_FAILURE);
+            id_sock = new_sock;
+            childAction(remote_addr);
         }
-
-        //mandamos el quote
-        error = sendto(id_sock, data_out, sizeof(data_out), 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
-        if (error < 0)
-        {
-            perror("sendto()");
-            error = close(id_sock);
-            if (error < 0)
-            {
-                perror("close()");
-                exit(EXIT_FAILURE);
-            }
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    // close
-    // cierro el socket
-    error = close(id_sock);
-    if (error < 0)
-    {
-        perror("close()");
-        exit(EXIT_FAILURE);
     }
     // Fin bloque de escucha
     return 0;
@@ -257,4 +206,147 @@ void portError()
 void setPort(const int port)
 {
     local_port = htons(port);
+}
+
+/**
+ * Función para manejar ctrl+C
+ */
+void signal_handler(int signal)
+{
+    if (signal == SIGINT)
+    {
+        // close
+        // cierro el socket
+        if (shutdown(id_sock, SHUT_RDWR) < 0)
+        {
+            perror("shutdown()");
+            if (close(id_sock) < 0)
+            {
+                perror("close()");
+                exit(EXIT_FAILURE);
+            }
+            exit(EXIT_FAILURE);
+        }
+
+        int data_in[512];
+        // recv para comprobar que el cliente se ha enterado.
+        if (recv(id_sock, &data_in, 0, 0) < 0)
+        {
+            perror("recv()");
+            if (close(id_sock) < 0)
+            {
+                perror("close()");
+                exit(EXIT_FAILURE);
+            }
+            exit(EXIT_FAILURE);
+        }
+
+        if (close(id_sock) < 0)
+        {
+            perror("close()");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+void childAction(struct sockaddr_in remote_addr)
+{
+    // Buffer de salida
+    char data_out[MAXLENGTH] = "";
+    // llamamos al sistema para ejecutar el comando fortune y aprovechamos para concatenar todo con las redirecciones de bash
+    if (system("/usr/bin/echo 'Quote Of The Day from vm2511:' > /tmp/tt.txt;/usr/games/fortune -s >> /tmp/tt.txt") == -1)
+    {
+        perror("system()");
+        exit(EXIT_FAILURE);
+    }
+    // Mostramos la ip del cliente y los datos recibidos
+    printf("\033[1;32mConexión de la ip: %s\033[0m\n", inet_ntoa(remote_addr.sin_addr));
+    fflush(stdout);
+    // leemos el quote hasta llenar 482 caracteres o el fin de fichero
+    FILE *fich = fopen("/tmp/tt.txt", "r");
+    if (!fich)
+    {
+        perror("fopen()");
+        if (close(id_sock) < 0)
+        {
+            perror("close()");
+            exit(EXIT_FAILURE);
+        }
+        exit(EXIT_FAILURE);
+    }
+    int nc = 0;
+    char aux;
+    aux = fgetc(fich);
+    do
+    {
+        if (ferror(fich) != 0)
+        {
+            perror("fgetc()");
+            if (close(id_sock) < 0)
+            {
+                perror("close()");
+                exit(EXIT_FAILURE);
+            }
+            exit(EXIT_FAILURE);
+        }
+        data_out[nc++] = aux;
+        aux = fgetc(fich);
+    } while (nc < MAXLENGTH - 1 && aux != EOF);
+
+    // cerramos el fichero
+    if (fclose(fich) == EOF)
+    {
+        perror("fclose()");
+        if (close(id_sock) < 0)
+        {
+            perror("close()");
+            exit(EXIT_FAILURE);
+        }
+        exit(EXIT_FAILURE);
+    }
+
+    //mandamos el quote
+    if (send(id_sock, data_out, sizeof(data_out), 0) < 0)
+    {
+        perror("sendto()");
+        if (close(id_sock) < 0)
+        {
+            perror("close()");
+            exit(EXIT_FAILURE);
+        }
+        exit(EXIT_FAILURE);
+    }
+
+    // Cerramos el socket como el hijo sustituye el valor del id_sock no es necesarario pasarselo por parámetro
+    // close
+    // cierro el socket
+    if (shutdown(id_sock, SHUT_RDWR) < 0)
+    {
+        perror("shutdown()");
+        if (close(id_sock) < 0)
+        {
+            perror("close()");
+            exit(EXIT_FAILURE);
+        }
+        exit(EXIT_FAILURE);
+    }
+
+    int data_in[512];
+    // recv para comprobar que el cliente se ha enterado.
+    if (recv(id_sock, &data_in, 0, 0) < 0)
+    {
+        perror("recv()");
+        if (close(id_sock) < 0)
+        {
+            perror("close()");
+            exit(EXIT_FAILURE);
+        }
+        exit(EXIT_FAILURE);
+    }
+
+    if (close(id_sock) < 0)
+    {
+        perror("close()");
+        exit(EXIT_FAILURE);
+    }
 }
