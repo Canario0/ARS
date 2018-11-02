@@ -133,6 +133,7 @@ int main(int argc, char const *argv[])
         {
             id_sock = new_sock;
             childAction(remote_addr);
+            exit(0);
         }
     }
     // Fin bloque de escucha
