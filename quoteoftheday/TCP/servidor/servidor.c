@@ -262,7 +262,7 @@ void childAction(struct sockaddr_in remote_addr)
     }
     // Mostramos la ip del cliente y los datos recibidos
     printf("\033[1;32mConexión de la ip:\033[0m %s\n", inet_ntoa(remote_addr.sin_addr));
-    fflush(stdout)
+    fflush(stdout);
     // leemos el quote hasta llenar 482 caracteres o el fin de fichero
     FILE *fich = fopen("/tmp/tt.txt", "r");
     if (!fich)
