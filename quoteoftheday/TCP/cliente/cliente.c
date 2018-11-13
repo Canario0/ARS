@@ -143,7 +143,7 @@ int main(int argc, char const *argv[])
     // // Fin de sendto
 
     // Bloque de recv
-    char data_in[512];
+    char data_in[512] = "";
     // Recibo los datos solicitados al servidor comprobando posibles errores
     error = recv(id_sock, &data_in, 512, 0);
     if (error < 0)
