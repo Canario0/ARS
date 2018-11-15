@@ -216,32 +216,6 @@ void signal_handler(int signal)
 {
     if (signal == SIGINT)
     {
-        // close
-        // cierro el socket
-        if (shutdown(id_sock, SHUT_RDWR) < 0)
-        {
-            perror("shutdown()");
-            if (close(id_sock) < 0)
-            {
-                perror("close()");
-                exit(EXIT_FAILURE);
-            }
-            exit(EXIT_FAILURE);
-        }
-
-        int data_in[512];
-        // recv para comprobar que el cliente se ha enterado.
-        if (recv(id_sock, &data_in, 0, 0) < 0)
-        {
-            perror("recv()");
-            if (close(id_sock) < 0)
-            {
-                perror("close()");
-                exit(EXIT_FAILURE);
-            }
-            exit(EXIT_FAILURE);
-        }
-
         if (close(id_sock) < 0)
         {
             perror("close()");
@@ -320,31 +294,6 @@ void childAction(struct sockaddr_in remote_addr)
 
     // Cerramos el socket como el hijo sustituye el valor del id_sock no es necesarario pasarselo por parámetro
     // close
-    // cierro el socket
-    if (shutdown(id_sock, SHUT_RDWR) < 0)
-    {
-        perror("shutdown()");
-        if (close(id_sock) < 0)
-        {
-            perror("close()");
-            exit(EXIT_FAILURE);
-        }
-        exit(EXIT_FAILURE);
-    }
-
-    int data_in[512];
-    // recv para comprobar que el cliente se ha enterado.
-    if (recv(id_sock, &data_in, 0, 0) < 0)
-    {
-        perror("recv()");
-        if (close(id_sock) < 0)
-        {
-            perror("close()");
-            exit(EXIT_FAILURE);
-        }
-        exit(EXIT_FAILURE);
-    }
-
     if (close(id_sock) < 0)
     {
         perror("close()");
