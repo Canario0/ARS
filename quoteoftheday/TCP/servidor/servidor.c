@@ -261,7 +261,7 @@ void childAction(struct sockaddr_in remote_addr)
         exit(EXIT_FAILURE);
     }
     // Mostramos la ip del cliente y los datos recibidos
-    printf("\033[1;32mConexión de la ip:\033[0m %s\n", inet_ntoa(remote_addr.sin_addr));
+    printf("\033[1;32mConexion from:\033[0m %s\n", inet_ntoa(remote_addr.sin_addr));
     fflush(stdout);
     // leemos el quote hasta llenar 482 caracteres o el fin de fichero
     FILE *fich = fopen("/tmp/tt.txt", "r");
@@ -321,7 +321,7 @@ void childAction(struct sockaddr_in remote_addr)
     // Cerramos el socket como el hijo sustituye el valor del id_sock no es necesarario pasarselo por parámetro
     // close
     // cierro el socket
-    if (shutdown(id_sock, SHUT_RDWR) < 0)
+    /*if (shutdown(id_sock, SHUT_RDWR) < 0)
     {
         perror("shutdown()");
         if (close(id_sock) < 0)
@@ -349,5 +349,5 @@ void childAction(struct sockaddr_in remote_addr)
     {
         perror("close()");
         exit(EXIT_FAILURE);
-    }
+    }*/
 }
