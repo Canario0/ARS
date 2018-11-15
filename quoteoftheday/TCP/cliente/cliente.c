@@ -1,4 +1,4 @@
-// Practica tema 5, Renero Balgañón Pablo
+// Practica tema 6, Renero Balgañón Pablo
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
