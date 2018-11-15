@@ -221,6 +221,7 @@ void signal_handler(int signal)
             perror("close()");
             exit(EXIT_FAILURE);
         }
+	exit(0);
     }
 }
 
