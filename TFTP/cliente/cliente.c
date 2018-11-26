@@ -22,6 +22,7 @@ void setPort(const int port);
 // Variables Globales
 struct in_addr server_ip;
 uint16_t server_port;
+char *file_name;
 
 int main(int argc, char const *argv[])
 {
@@ -33,16 +34,24 @@ int main(int argc, char const *argv[])
     }
 
     // Compruebo que si existen más de un parámetro de entrada tienen e ser tres o cuatro en total
-    if ((argc - 1) > 1 && !((argc - 1) >=3 && (argc-1)<=4))
+    if ((argc - 1) > 1 && !((argc - 1) >= 3 && (argc - 1) <= 4))
     {
         paramError();
     }
 
+    if((file_name = (char *)calloc(101, sizeof(char)))== 0){
+        perror("Fallo al reservar memoria");
+    }
+    
     // Llamo a la función que parsea los datos con el primer elemento
-    int i =1;
-    for(i, i<argc;i++)    
-    output(i, argv, argc - 1);
+    int i;
+    for (i = 1; i < argc; i++)
+    {
+        output(i, argv, argc - 1);
+    }
     // Fin bloque datos de entrada
+
+    free(file_name);
     return 0;
 }
 
@@ -66,38 +75,38 @@ void output(int const pos, char const *argv[], const int total)
     }
     else if (strcmp(argv[pos], "-r") == 0 || strcmp(argv[pos], "-w") == 0)
     {
-	    if(pos != 2)
-		    paramError();
-	    printf("Modo %s\n", argv[pos]);
-
+        if (pos != 2)
+            paramError();
+        printf("Modo %s\n", argv[pos]);
     }
     else if (strcmp(argv[pos], "-v") == 0)
     {
-	    if(pos!=4)
-		    paramError();
-	    printf("Modo vervoso");
-
+        if (pos != 4)
+            paramError();
+        printf("Modo vervoso\n");
     }
     else
     {
         //En el caso de que llegue aquí con una posición que no sea 1 se lanza un mensaje de error.
-        if (pos != 1 && pos != 3 )
+        if (pos != 1 && pos != 3)
         {
             paramError();
         }
-	if (pos == 1){
-           //Traduce la ip y comprueba que es válida.
-           if (inet_aton(argv[pos], &server_ip) == 0)
-           {
-               ipError(argv[pos]);
-           }
-	   printf("La ip es: %d\n", server_ip);
-
-         } else {
-	      if (strcmp(argv[pos-1], "-r") == 0 && strcmp(argv[pos-1], "-w") == 0)
-		      paramError();
-	      printf("Nombre del archivo %s \n" , argv[pos]);
-	 }
+        if (pos == 1)
+        {
+            //Traduce la ip y comprueba que es válida.
+            if (inet_aton(argv[pos], &server_ip) == 0)
+            {
+                ipError(argv[pos]);
+            }
+            printf("La ip es: %d\n", server_ip.s_addr);
+        }
+        else
+        {
+            if (strcmp(argv[pos - 1], "-r") == 0 && strcmp(argv[pos - 1], "-w") == 0)
+                paramError();
+            printf("Nombre del archivo %s \n", argv[pos]);
+        }
     }
 }
 
