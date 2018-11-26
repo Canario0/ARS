@@ -32,33 +32,16 @@ int main(int argc, char const *argv[])
         noParamError();
     }
 
-    // Compruebo que si existen más de un parámetro de entrada tienen que r setres o cuatro es en total
+    // Compruebo que si existen más de un parámetro de entrada tienen e ser tres o cuatro en total
     if ((argc - 1) > 1 && !((argc - 1) >=3 && (argc-1)<=4))
     {
         paramError();
     }
 
     // Llamo a la función que parsea los datos con el primer elemento
-    output(1, argv, argc - 1);
-
-    if (argc - 1 == 3)
-    {
-        // En el caso de que existan 3 elementos llamo a la función con el valor 2 en la variable pos
-        output(2, argv, argc - 1);
-    }
-    else
-    {
-        // En el caso de que no tenga 3 parámetros quiere decir que el puerto que vamos usar es el por defecto del protocolo qotd
-        struct servent *aux;
-        aux = getservbyname("tftp", "udp");
-        // Si el resultado es NULL imprimimos el mensaje de error
-        if (!aux)
-        {
-            portError();
-        }
-	printf("El puerto de TFTP es: %u\n", ntohs(aux->s_port));
-        server_port = aux->s_port;
-    }
+    int i =1;
+    for(i, i<argc;i++)    
+    output(i, argv, argc - 1);
     // Fin bloque datos de entrada
     return 0;
 }
@@ -74,39 +57,47 @@ void output(int const pos, char const *argv[], const int total)
     //opción para mostrar la ayuda
     if (strcmp(argv[pos], "-h") == 0)
     {
-        //En el caso de que la opción -h no esté en la pos 1 o tenga más argumentos detras se lanza un error de entrada
+        //En el caso de que la opción -h no esté en la pos 1 o tenga más amentos detras se lanza un error de entrada
         if (pos != 1 || total != 1)
         {
             paramError();
         }
         ayuda();
     }
-    else if (strcmp(argv[pos], "-p") == 0)
+    else if (strcmp(argv[pos], "-r") == 0 || strcmp(argv[pos], "-w") == 0)
     {
-        //En el caso de que el puerto no vaya seguido de un elemento o el elemento no sea un número se lanza un error
-        int port;
-        if (sscanf(argv[pos + 1], "%d", &port) != 1)
-        {
-            portError();
-        }
-        else
-        {
-            //Función que establece el puerto
-            setPort(port);
-        }
+	    if(pos != 2)
+		    paramError();
+	    printf("Modo %s\n", argv[pos]);
+
+    }
+    else if (strcmp(argv[pos], "-v") == 0)
+    {
+	    if(pos!=4)
+		    paramError();
+	    printf("Modo vervoso");
+
     }
     else
     {
         //En el caso de que llegue aquí con una posición que no sea 1 se lanza un mensaje de error.
-        if (pos != 1)
+        if (pos != 1 && pos != 3 )
         {
             paramError();
         }
-        //Traduce la ip y comprueba que es válida.
-        if (inet_aton(argv[pos], &server_ip) == 0)
-        {
-            ipError(argv[pos]);
-        }
+	if (pos == 1){
+           //Traduce la ip y comprueba que es válida.
+           if (inet_aton(argv[pos], &server_ip) == 0)
+           {
+               ipError(argv[pos]);
+           }
+	   printf("La ip es: %d\n", server_ip);
+
+         } else {
+	      if (strcmp(argv[pos-1], "-r") == 0 && strcmp(argv[pos-1], "-w") == 0)
+		      paramError();
+	      printf("Nombre del archivo %s \n" , argv[pos]);
+	 }
     }
 }
 
