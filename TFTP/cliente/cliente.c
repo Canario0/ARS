@@ -32,8 +32,8 @@ int main(int argc, char const *argv[])
         noParamError();
     }
 
-    // Compruebo que si existen más de un parámetro de entrada tienen que ser tres en total
-    if ((argc - 1) > 1 && (argc - 1) != 3)
+    // Compruebo que si existen más de un parámetro de entrada tienen que r setres o cuatro es en total
+    if ((argc - 1) > 1 && !((argc - 1) >=3 && (argc-1)<=4))
     {
         paramError();
     }
@@ -115,7 +115,7 @@ void output(int const pos, char const *argv[], const int total)
  */
 void paramError()
 {
-    printf("Número de parámetros erroneo\nPruebe './%s -h' para más información.\n", PROGRAM_NAME);
+    printf("\nNumero de parametros erroneo\nPruebe './%s -h' para mas informacion\n\n", PROGRAM_NAME);
     exit(EXIT_FAILURE);
 }
 /**
@@ -132,8 +132,10 @@ void noParamError()
  */
 void ayuda()
 {
-    printf("\nUso: ./%s direccion.IP.servidor [-p puerto-servidor]\n\n", PROGRAM_NAME);
-    printf("Opciones:\n\t-p\n\t   Si no se proporciona un número de puesto se usará el puerto por defecto del servicio Quote of the Day.\n\n");
+    printf("\n\033[1;33mUso:\033[0m\n\t./%s direccion.IP.servidor {-r|-w} nombre.archivo [-v] \n\n", PROGRAM_NAME);
+    printf("\033[1;33mOpciones:\n\t-r\033[0m\n\t   Indica que se desea leer un fichero del servidor.\n\n");
+    printf("\t\033[1;33m-w\033[0m\n\t   Indica que se desea escribir un fichero del servidor.\n\n");
+    printf("\t\033[1;33m-v\033[0m\n\t   Parametro opcional que hara que el cliente informe de todos los pasos necesarios para enviar o recibir un fichero.\n\n");
     exit(0);
 }
 
