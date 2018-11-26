@@ -9,20 +9,23 @@
 #include <sys/types.h>
 #include <sys/unistd.h>
 
-#define PROGRAM_NAME "qotd-udp-client-Renero-Balgañon"
+#define PROGRAM_NAME "tftp-Renero-Balganon"
+#define MODE "octet"
 
 void output(int const pos, char const *argv[], const int total);
 void paramError();
 void noParamError();
 void ayuda();
 void ipError(const char *in);
-void portError();
-void setPort(const int port);
+char *readWriteRequest();
 
 // Variables Globales
 struct in_addr server_ip;
 uint16_t server_port;
+int request;
 char *file_name;
+int vervose = 0;
+int package_size = 0;
 
 int main(int argc, char const *argv[])
 {
@@ -39,10 +42,6 @@ int main(int argc, char const *argv[])
         paramError();
     }
 
-    if((file_name = (char *)calloc(101, sizeof(char)))== 0){
-        perror("Fallo al reservar memoria");
-    }
-    
     // Llamo a la función que parsea los datos con el primer elemento
     int i;
     for (i = 1; i < argc; i++)
@@ -50,7 +49,11 @@ int main(int argc, char const *argv[])
         output(i, argv, argc - 1);
     }
     // Fin bloque datos de entrada
+    char *dataout;
+    dataout = readWriteRequest();
+    printf("esto es mi paquete to rechulon: %s\n", dataout);
 
+    free(dataout);
     free(file_name);
     return 0;
 }
@@ -77,13 +80,23 @@ void output(int const pos, char const *argv[], const int total)
     {
         if (pos != 2)
             paramError();
+
+        if (strcmp(argv[pos], "-r") == 0)
+        {
+            request = 01;
+        }
+        else
+        {
+            request = 02;
+        }
         printf("Modo %s\n", argv[pos]);
     }
     else if (strcmp(argv[pos], "-v") == 0)
     {
         if (pos != 4)
             paramError();
-        printf("Modo vervoso\n");
+
+        vervose = 1;
     }
     else
     {
@@ -105,7 +118,14 @@ void output(int const pos, char const *argv[], const int total)
         {
             if (strcmp(argv[pos - 1], "-r") == 0 && strcmp(argv[pos - 1], "-w") == 0)
                 paramError();
-            printf("Nombre del archivo %s \n", argv[pos]);
+
+            if ((file_name = (char *)calloc(100, sizeof(char))) == 0)
+            {
+                perror("Fallo al reservar memoria para el nombre del fichero");
+                exit(EXIT_FAILURE);
+            }
+            strncpy(file_name, argv[pos], 100);
+            printf("Nombre del archivo %s \n", file_name);
         }
     }
 }
@@ -148,19 +168,47 @@ void ipError(const char *in)
     exit(EXIT_FAILURE);
 }
 
-/**
- * Función que imprime un mensaje de error si el puerto no es válido
- */
-void portError()
+char *readWriteRequest()
 {
-    printf("\nEl puerto no es válido o no se ha podido encontrar\n\n");
-    exit(EXIT_FAILURE);
-}
-
-/**
- * Función que traduce un puerto de número al valor de internet
- */
-void setPort(const int port)
-{
-    server_port = htons(port);
+    char *package;
+    if ((package = (char *)malloc(512 * sizeof(char))) == 0)
+    {
+        perror("Fallo al reservar memoria para el paquete");
+        exit(EXIT_FAILURE);
+    }
+    if (sprintf(package, "%02d", request) < 0)
+    {
+        perror("opencode sprintf()");
+        exit(EXIT_FAILURE);
+    }
+    package_size = 2;
+    int aux_size;
+    aux_size = sprintf(package + 2, "%s", file_name);
+    if (aux_size < 0)
+    {
+        perror("Nombre del archivo sprintf()");
+        exit(EXIT_FAILURE);
+    }
+    package_size += aux_size;
+    if (sprintf(package + package_size, "%d", 0) < 0)
+    {
+        perror("EOS sprintf()");
+        exit(EXIT_FAILURE);
+    }
+    package_size++;
+    aux_size = sprintf(package + package_size, "%s", MODE);
+    if (aux_size < 0)
+    {
+        perror("Modo sprintf()");
+        exit(EXIT_FAILURE);
+    }
+    package_size += aux_size;
+    if (sprintf(package + package_size, "%d", 0) < 0)
+    {
+        perror("EOS sprintf()");
+        exit(EXIT_FAILURE);
+    }
+    package_size++;
+    printf("Número de bytes del paquete: %d\n", package_size);
+    return package;
 }
