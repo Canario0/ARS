@@ -170,10 +170,11 @@ void ipError(const char *in)
 
 char *readWriteRequest()
 {
+    package_size = 0;
     char *package;
     if ((package = (char *)malloc(512 * sizeof(char))) == 0)
     {
-        perror("Fallo al reservar memoria para el paquete");
+        perror("Fallo al reservar memoria para el paquete RRQ o WRQ");
         exit(EXIT_FAILURE);
     }
     if (sprintf(package, "%02d", request) < 0)
@@ -211,4 +212,22 @@ char *readWriteRequest()
     package_size++;
     printf("Número de bytes del paquete: %d\n", package_size);
     return package;
+}
+
+char * ackPackage(int block_number){
+    package_size = 0;
+    char *package;
+    if ((package = (char *)malloc(512 * sizeof(char))) == 0)
+    {
+        perror("Fallo al reservar memoria para el paquete ACK");
+        exit(EXIT_FAILURE);
+    }
+    if (sprintf(package, "%02d", 04) < 0)
+    {
+        perror("opencode sprintf()");
+        exit(EXIT_FAILURE);
+    }
+    package_size=2;
+
+
 }
