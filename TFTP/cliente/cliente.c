@@ -59,6 +59,7 @@ int main(int argc, char const *argv[])
 	if (!aux)
 	{
 		perror("getservbyname()");
+		exit(EXIT_FAILURE);
 	}
 	server_port = aux->s_port;
 	// Fin bloque datos de entrada
@@ -99,6 +100,8 @@ int main(int argc, char const *argv[])
 	//Inicio de la transmisión de datos
 	switch(request){
 		case 01:
+	printf("hola");
+	fflush(stdout);
 			readAction(id_sock);
 			break;
 		case 02: 
@@ -173,7 +176,6 @@ void output(int const pos, char const *argv[], const int total)
 			{
 				ipError(argv[pos]);
 			}
-			printf("La ip es: %d\n", server_ip.s_addr);
 		}
 		else
 		{
@@ -346,7 +348,7 @@ void readAction(int id_sock){
 	remote_addr.sin_addr = server_ip;
 	char* package_out;
 	package_out = readWriteRequest();
-	error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *) &remote_addr, sizeof(struct sockaddr_in));
+	error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *) &remote_addr, sizeof(remote_addr));
 	if (error < 0)
 	{
 		perror("sendto()");
@@ -365,9 +367,13 @@ void readAction(int id_sock){
 		perror("Fallo al reservar memoria para los datos entrantes");
 		exit(EXIT_FAILURE);
 	}
+	printf("HOLA");
+	fflush(stdout);
 	 socklen_t len = sizeof(remote_addr);
 	// Recibo los datos solicitados al servidor comprobando posibles errores
 	error = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
+	printf("HOLA");
+	fflush(stdout);
 	if (error < 0)
 	{
 		perror("recvfrom()");
@@ -380,7 +386,7 @@ void readAction(int id_sock){
 		exit(EXIT_FAILURE);
 	}
 	printf("Leo %d bytes\n",error);
-	printf("Recibo %si\n",package_in+4);
+	printf("Recibo %si\n",package_in);
 
 
 
