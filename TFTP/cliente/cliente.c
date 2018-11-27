@@ -256,11 +256,13 @@ char *readWriteRequest()
         exit(EXIT_FAILURE);
     }
     package_size += aux_size;
-    if (sprintf(package + package_size, "%d", 0) < 0)
-    {
-        perror("EOS sprintf()");
-        exit(EXIT_FAILURE);
-    }
+    // if (sprintf(package + package_size, "%d", 0) < 0)
+    // {
+    //     perror("EOS sprintf()");
+    //     exit(EXIT_FAILURE);
+    // }
+    char* aux = (package+ package_size);
+    *aux='\0';
     package_size++;
     aux_size = sprintf(package + package_size, "%s", MODE);
     if (aux_size < 0)
@@ -269,11 +271,13 @@ char *readWriteRequest()
         exit(EXIT_FAILURE);
     }
     package_size += aux_size;
-    if (sprintf(package + package_size, "%d", 0) < 0)
-    {
-        perror("EOS sprintf()");
-        exit(EXIT_FAILURE);
-    }
+    // if (sprintf(package + package_size, "%d", 0) < 0)
+    // {
+    //     perror("EOS sprintf()");
+    //     exit(EXIT_FAILURE);
+    // }
+    aux = (package+ package_size);
+    *aux='\0';
     package_size++;
     return package;
 }
