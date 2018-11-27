@@ -16,8 +16,9 @@ void output(int const pos, char const *argv[], const int total);
 void paramError();
 void noParamError();
 void ayuda();
-void ipError(const char *in);
+void ipError(const char *);
 char *readWriteRequest();
+char *ackPackage(int);
 
 // Variables Globales
 struct in_addr server_ip;
@@ -51,6 +52,10 @@ int main(int argc, char const *argv[])
     // Fin bloque datos de entrada
     char *dataout;
     dataout = readWriteRequest();
+    printf("Número de bytes del paquete: %d\n", package_size);
+    printf("esto es mi paquete to rechulon: %s\n", dataout);
+    dataout = ackPackage(1);
+    printf("Número de bytes del paquete: %d\n", package_size);
     printf("esto es mi paquete to rechulon: %s\n", dataout);
 
     free(dataout);
@@ -210,7 +215,6 @@ char *readWriteRequest()
         exit(EXIT_FAILURE);
     }
     package_size++;
-    printf("Número de bytes del paquete: %d\n", package_size);
     return package;
 }
 
@@ -228,6 +232,15 @@ char * ackPackage(int block_number){
         exit(EXIT_FAILURE);
     }
     package_size=2;
+    int aux_size;
+    aux_size = sprintf(package + 2, "%d", block_number);
+    if (aux_size < 0)
+    {
+        perror("Numero de bloque sprintf()");
+        exit(EXIT_FAILURE);
+    }
+    package_size+= aux_size;
+    return package;
 
 
 }
