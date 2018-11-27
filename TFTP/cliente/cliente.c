@@ -370,7 +370,7 @@ void readAction(int id_sock)
     fflush(stdout);
     socklen_t len = sizeof(remote_addr);
     // Recibo los datos solicitados al servidor comprobando posibles errores
-    error = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
+    error = recvfrom(id_sock, package_in, 4, 0, (struct sockaddr *)&remote_addr, &len);
     printf("HOLA");
     fflush(stdout);
     if (error < 0)
