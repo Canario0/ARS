@@ -33,95 +33,6 @@ int package_size = 0;
 
 int main(int argc, char const *argv[])
 {
-<<<<<<< HEAD
-	// Bloque datos de entrada
-	// Compruebo que hay parametros de entrada, si no los hay se imprime un mensaje avisando
-	if (argc <= 1)
-	{
-		noParamError();
-	}
-
-	// Compruebo que si existen más de un parámetro de entrada tienen e ser tres o cuatro en total
-	if ((argc - 1) > 1 && !((argc - 1) >= 3 && (argc - 1) <= 4))
-	{
-		paramError();
-	}
-
-	// Llamo a la función que parsea los datos con el primer elemento
-	int i;
-	for (i = 1; i < argc; i++)
-	{
-		output(i, argv, argc - 1);
-	}
-	// Obtenemos el número del puerto TFTP
-	struct servent *aux;
-	aux = getservbyname("tftp", "udp");
-	// Si el resultado es NULL imprimimos el mensaje de error
-	if (!aux)
-	{
-		perror("getservbyname()");
-		exit(EXIT_FAILURE);
-	}
-	server_port = aux->s_port;
-	// Fin bloque datos de entrada
-
-	//Bloque del socket
-	int id_sock;
-	//Creamos el socket y comprobamos los posibles errores
-	id_sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (id_sock == -1)
-	{
-		perror("socket()");
-		exit(EXIT_FAILURE);
-	}
-	// Fin bloque del socket
-
-	// Bloque de bind
-	int error;
-	struct sockaddr_in local_addr;
-	local_addr.sin_family = AF_INET;
-	local_addr.sin_port = 0;
-	local_addr.sin_addr.s_addr = INADDR_ANY;
-	// Hacemos el bind con el puerto y comprobamos los errores
-	error = bind(id_sock, (struct sockaddr *)&local_addr, sizeof(local_addr));
-	if (error < 0)
-	{
-		perror("bind()");
-		// En el caso de que el bind falle el socket se queda encendido, por eso hay que cerrarlo
-		error = close(id_sock);
-		if (error < 0)
-		{
-			perror("close()");
-			exit(EXIT_FAILURE);
-		}
-		exit(EXIT_FAILURE);
-	}
-	// Fin bloque de bind
-
-	//Inicio de la transmisión de datos
-	switch(request){
-		case 01:
-	printf("hola");
-	fflush(stdout);
-			readAction(id_sock);
-			break;
-		case 02: 
-			writeAction(id_sock);
-			break;
-		default:
-			printf("Failure of the program");
-			exit(EXIT_FAILURE);
-	}
-	free(file_name);
-	// Cierro el socket
-	error = close(id_sock);
-	if (error < 0)
-	{
-		perror("close()");
-		exit(EXIT_FAILURE);
-		}
-	return 0;
-=======
     // Bloque datos de entrada
     // Compruebo que hay parametros de entrada, si no los hay se imprime un mensaje avisando
     if (argc <= 1)
@@ -148,6 +59,7 @@ int main(int argc, char const *argv[])
     if (!aux)
     {
         perror("getservbyname()");
+        exit(EXIT_FAILURE);
     }
     server_port = aux->s_port;
     // Fin bloque datos de entrada
@@ -189,6 +101,8 @@ int main(int argc, char const *argv[])
     switch (request)
     {
     case 01:
+        printf("hola");
+        fflush(stdout);
         readAction(id_sock);
         break;
     case 02:
@@ -207,7 +121,6 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
     return 0;
->>>>>>> 20bf6a04dbc9ff891651ea908b085002a1496653
 }
 
 /**
@@ -218,69 +131,6 @@ int main(int argc, char const *argv[])
  */
 void output(int const pos, char const *argv[], const int total)
 {
-<<<<<<< HEAD
-	//opción para mostrar la ayuda
-	if (strcmp(argv[pos], "-h") == 0)
-	{
-		//En el caso de que la opción -h no esté en la pos 1 o tenga más amentos detras se lanza un error de entrada
-		if (pos != 1 || total != 1)
-		{
-			paramError();
-		}
-		ayuda();
-	}
-	else if (strcmp(argv[pos], "-r") == 0 || strcmp(argv[pos], "-w") == 0)
-	{
-		if (pos != 2)
-			paramError();
-
-		if (strcmp(argv[pos], "-r") == 0)
-		{
-			request = 01;
-		}
-		else
-		{
-			request = 02;
-		}
-		printf("Modo %s\n", argv[pos]);
-	}
-	else if (strcmp(argv[pos], "-v") == 0)
-	{
-		if (pos != 4)
-			paramError();
-
-		vervose = 1;
-	}
-	else
-	{
-		//En el caso de que llegue aquí con una posición que no sea 1 se lanza un mensaje de error.
-		if (pos != 1 && pos != 3)
-		{
-			paramError();
-		}
-		if (pos == 1)
-		{
-			//Traduce la ip y comprueba que es válida.
-			if (inet_aton(argv[pos], &server_ip) == 0)
-			{
-				ipError(argv[pos]);
-			}
-		}
-		else
-		{
-			if (strcmp(argv[pos - 1], "-r") == 0 && strcmp(argv[pos - 1], "-w") == 0)
-				paramError();
-
-			if ((file_name = (char *)calloc(100, sizeof(char))) == 0)
-			{
-				perror("Fallo al reservar memoria para el nombre del fichero");
-				exit(EXIT_FAILURE);
-			}
-			strncpy(file_name, argv[pos], 100);
-			printf("Nombre del archivo %s \n", file_name);
-		}
-	}
-=======
     //opción para mostrar la ayuda
     if (strcmp(argv[pos], "-h") == 0)
     {
@@ -343,7 +193,6 @@ void output(int const pos, char const *argv[], const int total)
             printf("Nombre del archivo %s \n", file_name);
         }
     }
->>>>>>> 20bf6a04dbc9ff891651ea908b085002a1496653
 }
 
 /**
@@ -488,61 +337,8 @@ char *dataPackage(int block_number, char *data)
     package_size += aux_size;
     return package;
 }
-<<<<<<< HEAD
-void readAction(int id_sock){
-
-	int error;
-	struct sockaddr_in remote_addr;
-	remote_addr.sin_family = AF_INET;
-	remote_addr.sin_port = server_port;
-	remote_addr.sin_addr = server_ip;
-	char* package_out;
-	package_out = readWriteRequest();
-	error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *) &remote_addr, sizeof(remote_addr));
-	if (error < 0)
-	{
-		perror("sendto()");
-		error = close(id_sock);
-		if (error < 0)
-		{
-			perror("close()");
-			exit(EXIT_FAILURE);
-		}
-		exit(EXIT_FAILURE);
-	}
-
-	char *package_in;
-	if ((package_in = (char *)calloc(516, sizeof(char))) == 0)
-	{
-		perror("Fallo al reservar memoria para los datos entrantes");
-		exit(EXIT_FAILURE);
-	}
-	printf("HOLA");
-	fflush(stdout);
-	 socklen_t len = sizeof(remote_addr);
-	// Recibo los datos solicitados al servidor comprobando posibles errores
-	error = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
-	printf("HOLA");
-	fflush(stdout);
-	if (error < 0)
-	{
-		perror("recvfrom()");
-		error = close(id_sock);
-		if (error < 0)
-		{
-			perror("close()");
-			exit(EXIT_FAILURE);
-		}
-		exit(EXIT_FAILURE);
-	}
-	printf("Leo %d bytes\n",error);
-	printf("Recibo %si\n",package_in);
-
-
-=======
 void readAction(int id_sock)
 {
->>>>>>> 20bf6a04dbc9ff891651ea908b085002a1496653
 
     int error;
     struct sockaddr_in remote_addr;
@@ -551,7 +347,7 @@ void readAction(int id_sock)
     remote_addr.sin_addr = server_ip;
     char *package_out;
     package_out = readWriteRequest();
-    error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(struct sockaddr_in));
+    error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
     if (error < 0)
     {
         perror("sendto()");
@@ -570,9 +366,13 @@ void readAction(int id_sock)
         perror("Fallo al reservar memoria para los datos entrantes");
         exit(EXIT_FAILURE);
     }
+    printf("HOLA");
+    fflush(stdout);
     socklen_t len = sizeof(remote_addr);
     // Recibo los datos solicitados al servidor comprobando posibles errores
-    error = recvfrom(id_sock, package_in, 4, 0, (struct sockaddr *)&remote_addr, &len);
+    error = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
+    printf("HOLA");
+    fflush(stdout);
     if (error < 0)
     {
         perror("recvfrom()");
@@ -585,7 +385,7 @@ void readAction(int id_sock)
         exit(EXIT_FAILURE);
     }
     printf("Leo %d bytes\n", error);
-    printf("Recibo %si\n", package_in + 4);
+    printf("Recibo %si\n", package_in);
 }
 
 void writeAction(int id_sock)
