@@ -20,6 +20,8 @@ void ipError(const char *);
 char *readWriteRequest();
 char *ackPackage(int);
 char *dataPackage(int, char*);
+void readAction(int);
+void writeAction(int);
 
 // Variables Globales
 struct in_addr server_ip;
@@ -50,20 +52,70 @@ int main(int argc, char const *argv[])
 	{
 		output(i, argv, argc - 1);
 	}
+	// Obtenemos el número del puerto TFTP
+	struct servent *aux;
+	aux = getservbyname("tftp", "udp");
+	// Si el resultado es NULL imprimimos el mensaje de error
+	if (!aux)
+	{
+		perror("getservbyname()");
+	}
+	server_port = aux->s_port;
 	// Fin bloque datos de entrada
-	char *dataout;
-	dataout = readWriteRequest();
-	printf("Número de bytes del paquete: %d\n", package_size);
-	printf("esto es mi paquete to rechulon: %s\n", dataout);
-	dataout = ackPackage(1);
-	printf("Número de bytes del paquete: %d\n", package_size);
-	printf("esto es mi paquete to rechulon: %s\n", dataout);
-	dataout = dataPackage(1,"Mando algunos datos, y otros no los mando");
-	printf("Número de bytes del paquete: %d\n", package_size);
-	printf("esto es mi paquete to rechulon: %s\n", dataout);
 
-	free(dataout);
+	//Bloque del socket
+	int id_sock;
+	//Creamos el socket y comprobamos los posibles errores
+	id_sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (id_sock == -1)
+	{
+		perror("socket()");
+		exit(EXIT_FAILURE);
+	}
+	// Fin bloque del socket
+
+	// Bloque de bind
+	int error;
+	struct sockaddr_in local_addr;
+	local_addr.sin_family = AF_INET;
+	local_addr.sin_port = 0;
+	local_addr.sin_addr.s_addr = INADDR_ANY;
+	// Hacemos el bind con el puerto y comprobamos los errores
+	error = bind(id_sock, (struct sockaddr *)&local_addr, sizeof(local_addr));
+	if (error < 0)
+	{
+		perror("bind()");
+		// En el caso de que el bind falle el socket se queda encendido, por eso hay que cerrarlo
+		error = close(id_sock);
+		if (error < 0)
+		{
+			perror("close()");
+			exit(EXIT_FAILURE);
+		}
+		exit(EXIT_FAILURE);
+	}
+	// Fin bloque de bind
+
+	//Inicio de la transmisión de datos
+	switch(request){
+		case 01:
+			readAction(id_sock);
+			break;
+		case 02: 
+			writeAction(id_sock);
+			break;
+		default:
+			printf("Failure of the program");
+			exit(EXIT_FAILURE);
+	}
 	free(file_name);
+	// Cierro el socket
+	error = close(id_sock);
+	if (error < 0)
+	{
+		perror("close()");
+		exit(EXIT_FAILURE);
+		}
 	return 0;
 }
 
@@ -281,6 +333,65 @@ char * dataPackage(int block_number, char* data){
 	printf("Esto es lo que escribo %d", aux_size);
 	package_size+= aux_size;
 	return package;
+
+
+
+}
+void readAction(int id_sock){
+
+	int error;
+	struct sockaddr_in remote_addr;
+	remote_addr.sin_family = AF_INET;
+	remote_addr.sin_port = server_port;
+	remote_addr.sin_addr = server_ip;
+	char* package_out;
+	package_out = readWriteRequest();
+	error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *) &remote_addr, sizeof(struct sockaddr_in));
+	if (error < 0)
+	{
+		perror("sendto()");
+		error = close(id_sock);
+		if (error < 0)
+		{
+			perror("close()");
+			exit(EXIT_FAILURE);
+		}
+		exit(EXIT_FAILURE);
+	}
+
+	char *package_in;
+	if ((package_in = (char *)calloc(516, sizeof(char))) == 0)
+	{
+		perror("Fallo al reservar memoria para los datos entrantes");
+		exit(EXIT_FAILURE);
+	}
+	 socklen_t len = sizeof(remote_addr);
+	// Recibo los datos solicitados al servidor comprobando posibles errores
+	error = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
+	if (error < 0)
+	{
+		perror("recvfrom()");
+		error = close(id_sock);
+		if (error < 0)
+		{
+			perror("close()");
+			exit(EXIT_FAILURE);
+		}
+		exit(EXIT_FAILURE);
+	}
+	printf("Leo %d bytes\n",error);
+	printf("Recibo %si\n",package_in+4);
+
+
+
+}
+
+
+
+
+void writeAction(int id_sock){
+
+
 
 
 }
