@@ -17,9 +17,9 @@ void paramError();
 void noParamError();
 void ayuda();
 void ipError(const char *);
-char *readWriteRequest();
-char *ackPackage(int);
-char *dataPackage(int, char *);
+unsigned char *readWriteRequest();
+unsigned char *ackPackage(int);
+unsigned char *dataPackage(int, unsigned char *);
 void readAction(int);
 void writeAction(int);
 
@@ -233,23 +233,19 @@ void ipError(const char *in)
     exit(EXIT_FAILURE);
 }
 
-char *readWriteRequest()
+unsigned char *readWriteRequest()
 {
     package_size = 0;
-    char *package;
-    if ((package = (char *)malloc(512 * sizeof(char))) == 0)
+    unsigned char *package;
+    if ((package = (unsigned char *)calloc(512, sizeof(unsigned char))) == 0)
     {
         perror("Fallo al reservar memoria para el paquete RRQ o WRQ");
         exit(EXIT_FAILURE);
     }
-    if (sprintf(package, "%02d", request) < 0)
-    {
-        perror("opencode sprintf()");
-        exit(EXIT_FAILURE);
-    }
+    package[1]= 1;
     package_size = 2;
     int aux_size;
-    aux_size = sprintf(package + 2, "%s", file_name);
+    aux_size = sprintf((char *)(package + 2), "%s",file_name);
     if (aux_size < 0)
     {
         perror("Nombre del archivo sprintf()");
@@ -261,10 +257,8 @@ char *readWriteRequest()
     //     perror("EOS sprintf()");
     //     exit(EXIT_FAILURE);
     // }
-    char* aux = (package+ package_size);
-    *aux='\0';
     package_size++;
-    aux_size = sprintf(package + package_size, "%s", MODE);
+    aux_size = sprintf((char *)package + package_size, "%s", MODE);
     if (aux_size < 0)
     {
         perror("Modo sprintf()");
@@ -276,29 +270,23 @@ char *readWriteRequest()
     //     perror("EOS sprintf()");
     //     exit(EXIT_FAILURE);
     // }
-    aux = (package+ package_size);
-    *aux='\0';
     package_size++;
     return package;
 }
 
-char *ackPackage(int block_number)
+unsigned char *ackPackage(int block_number)
 {
     package_size = 0;
-    char *package;
-    if ((package = (char *)malloc(512 * sizeof(char))) == 0)
+    unsigned char *package;
+    if ((package = (unsigned char *)calloc(4, sizeof(unsigned char))) == 0)
     {
         perror("Fallo al reservar memoria para el paquete ACK");
         exit(EXIT_FAILURE);
     }
-    if (sprintf(package, "%02d", 04) < 0)
-    {
-        perror("opencode sprintf()");
-        exit(EXIT_FAILURE);
-    }
+    package[1]=4;
     package_size = 2;
     int aux_size;
-    aux_size = sprintf(package + 2, "%02d", block_number);
+    aux_size = sprintf((char *)package + 2, "%02d", block_number);
     if (aux_size < 0)
     {
         perror("Numero de bloque sprintf()");
@@ -308,30 +296,26 @@ char *ackPackage(int block_number)
     return package;
 }
 
-char *dataPackage(int block_number, char *data)
+unsigned char *dataPackage(int block_number, unsigned char *data)
 {
     package_size = 0;
-    char *package;
-    if ((package = (char *)malloc(516 * sizeof(char))) == 0)
+    unsigned char *package;
+    if ((package = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
     {
         perror("Fallo al reservar memoria para el paquete de datos");
         exit(EXIT_FAILURE);
     }
-    if (sprintf(package, "%02d", 03) < 0)
-    {
-        perror("opencode sprintf()");
-        exit(EXIT_FAILURE);
-    }
+    package[1]=3;
     package_size = 2;
     int aux_size;
-    aux_size = sprintf(package + 2, "%02d", block_number);
+    aux_size = sprintf((char *)(package + 2), "%02d", block_number);
     if (aux_size < 0)
     {
         perror("Numero de bloque sprintf()");
         exit(EXIT_FAILURE);
     }
     package_size += aux_size;
-    aux_size = sprintf(package + package_size, "%s", data);
+    aux_size = sprintf( (char*)(package + package_size), "%s", data);
     if (aux_size < 0)
     {
         perror("Datos sprintf()");
@@ -349,7 +333,7 @@ void readAction(int id_sock)
     remote_addr.sin_family = AF_INET;
     remote_addr.sin_port = server_port;
     remote_addr.sin_addr = server_ip;
-    char *package_out;
+    unsigned char *package_out;
     package_out = readWriteRequest();
     error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
     if (error < 0)
@@ -364,8 +348,8 @@ void readAction(int id_sock)
         exit(EXIT_FAILURE);
     }
 
-    char *package_in;
-    if ((package_in = (char *)calloc(516, sizeof(char))) == 0)
+    unsigned char *package_in;
+    if ((package_in = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
     {
         perror("Fallo al reservar memoria para los datos entrantes");
         exit(EXIT_FAILURE);
@@ -374,7 +358,7 @@ void readAction(int id_sock)
     fflush(stdout);
     socklen_t len = sizeof(remote_addr);
     // Recibo los datos solicitados al servidor comprobando posibles errores
-    error = recvfrom(id_sock, package_in, 4, 0, (struct sockaddr *)&remote_addr, &len);
+    error = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
     printf("HOLA");
     fflush(stdout);
     if (error < 0)
@@ -389,7 +373,8 @@ void readAction(int id_sock)
         exit(EXIT_FAILURE);
     }
     printf("Leo %d bytes\n", error);
-    printf("Recibo %si\n", package_in);
+    printf("Recibo %d\n", package_in[1]);
+    printf("Recibo %d\n", package_in[4]);
 }
 
 void writeAction(int id_sock)
