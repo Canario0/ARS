@@ -374,7 +374,7 @@ void readAction(int id_sock)
     }
     printf("Leo %d bytes\n", error);
     printf("Recibo %d\n", package_in[1]);
-    printf("Recibo %d\n", package_in[4]);
+    printf("Recibo %d\n", package_in + 4);
 }
 
 void writeAction(int id_sock)
