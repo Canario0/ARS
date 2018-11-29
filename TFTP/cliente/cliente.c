@@ -22,6 +22,7 @@ unsigned char *ackPackage(int);
 unsigned char *dataPackage(int, unsigned char *);
 void readAction(int);
 void writeAction(int);
+void checkPackage(unsigned char* package, int * block_number);
 
 // Variables Globales
 struct in_addr server_ip;
@@ -372,11 +373,29 @@ void readAction(int id_sock)
         }
         exit(EXIT_FAILURE);
     }
-    printf("Leo %d bytes\n", error);
-    printf("Recibo %d\n", package_in[1]);
-    printf("Recibo %d\n", package_in + 4);
+    checkPackage(package_in, 0);
 }
 
 void writeAction(int id_sock)
 {
+}
+
+
+
+void checkPackage(unsigned char* package, int * block_number){
+	switch(package[1]){
+		case 1:
+			break;
+
+		case 3:
+			break;
+
+		case 4:
+		
+			break;
+		case 5:
+			printf("Error code: %d ''%s''\n", package[3], (char*) package+4);
+			exit(EXIT_FAILURE);
+			
+        }
 }
