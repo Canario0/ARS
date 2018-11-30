@@ -19,7 +19,7 @@ void ayuda();
 void ipError(const char *);
 unsigned char* readWriteRequest();
 unsigned char* ackPackage(int);
-unsigned char* dataPackage(int, unsigned char *);
+unsigned char* dataPackage(int);
 void readAction(int);
 void writeAction(int);
 unsigned char* checkPackage( int size, unsigned char*, int  block_number);
@@ -293,9 +293,8 @@ unsigned char* ackPackage(int block_number)
 	return package;
 }
 
-unsigned char* dataPackage(int block_number, unsigned char *data)
+unsigned char* dataPackage(int block_number)
 {
-	int aux_size=0;
 	package_size = 0;
 	unsigned char *package;
 	if ((package = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
@@ -477,7 +476,7 @@ unsigned char * checkPackage( int size, unsigned char* package, int block_number
 			if (in_file == NULL){
 				in_file	= fopen(file_name, "rb");
 			}
-			unsigned char* prueba =dataPackage(aux+1, buffer);  
+			unsigned char* prueba =dataPackage(aux+1);  
 			read_bytes = fread(prueba +4, 1, 512, in_file);
 			package_size += read_bytes;
 			return prueba;
