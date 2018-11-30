@@ -17,12 +17,12 @@ void paramError();
 void noParamError();
 void ayuda();
 void ipError(const char *);
-unsigned char *readWriteRequest();
-unsigned char *ackPackage(int);
-unsigned char *dataPackage(int, unsigned char *);
+unsigned char* readWriteRequest();
+unsigned char* ackPackage(int);
+unsigned char* dataPackage(int, unsigned char *);
 void readAction(int);
 void writeAction(int);
-void checkPackage( int size, int id_sock, unsigned char* package, int  block_number);
+void checkPackage( int size, int id_sock, unsigned char*,unsigned char*, int  block_number);
 
 // Variables Globales
 struct in_addr server_ip;
@@ -235,7 +235,7 @@ void ipError(const char *in)
 	exit(EXIT_FAILURE);
 }
 
-unsigned char *readWriteRequest()
+unsigned char* readWriteRequest()
 {
 	package_size = 0;
 	unsigned char *package;
@@ -272,11 +272,12 @@ unsigned char *readWriteRequest()
 	//     perror("EOS sprintf()");
 	//     exit(EXIT_FAILURE);
 	// }
+	package[package_size]=0; 
 	package_size++;
 	return package;
 }
 
-unsigned char *ackPackage(int block_number)
+unsigned char* ackPackage(int block_number)
 {
 	package_size = 0;
 	unsigned char *package;
@@ -290,11 +291,11 @@ unsigned char *ackPackage(int block_number)
 	package[2]= block_number/256;
 	package[3]= block_number%256;
 	package_size += 2;
-	printf("%d, %d, %d, %d\a", package[0], package[1], package[2],package[3]);
+	printf("%d, %d, %d, %d\n", package[0], package[1], package[2],package[3]);
 	return package;
 }
 
-unsigned char *dataPackage(int block_number, unsigned char *data)
+unsigned char* dataPackage(int block_number, unsigned char *data)
 {
 	package_size = 0;
 	unsigned char *package;
@@ -353,9 +354,10 @@ void readAction(int id_sock)
 		exit(EXIT_FAILURE);
 	}
 	socklen_t len = sizeof(remote_addr);
+	int recv_nu =0;
 	// Recibo los datos solicitados al servidor comprobando posibles errores
-	error = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
-	if (error < 0)
+	 recv_nu = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
+	if (recv_nu < 0)
 	{
 		perror("recvfrom()");
 		error = close(id_sock);
@@ -366,11 +368,11 @@ void readAction(int id_sock)
 		}
 		exit(EXIT_FAILURE);
 	}
-	checkPackage(error,id_sock,  package_in, 0);
+	checkPackage(error,id_sock,  package_in, package_out, 0);
 	int block_num=1;
-	while(error-4 == 512){
-		error = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
-		if (error < 0)
+	while(recv_nu-4 == 512){
+		recv_nu = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
+		if (recv_nu < 0)
 		{
 			perror("recvfrom()");
 			error = close(id_sock);
@@ -381,7 +383,19 @@ void readAction(int id_sock)
 			}
 			exit(EXIT_FAILURE);
 		}
-		checkPackage(error,id_sock,  package_in,block_num);
+		checkPackage(error,id_sock,  package_in , package_out,block_num);
+		error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+		if (error < 0)
+		{
+			perror("sendto()");
+			error = close(id_sock);
+			if (error < 0)
+			{
+				perror("close()");
+				exit(EXIT_FAILURE);
+			}
+			exit(EXIT_FAILURE);
+		}
 		block_num ++;
 	}
 	fclose(out_file);
@@ -393,12 +407,7 @@ void writeAction(int id_sock)
 
 
 
-void checkPackage( int size, int id_sock, unsigned char* package, int block_number){
-	int error;
-	struct sockaddr_in remote_addr;
-	remote_addr.sin_family = AF_INET;
-	remote_addr.sin_port = server_port;
-	remote_addr.sin_addr = server_ip;
+void checkPackage( int size, int id_sock, unsigned char* package,unsigned char* package_out, int block_number){
 	switch(package[1]){
 		case 1:
 			break;
@@ -408,26 +417,14 @@ void checkPackage( int size, int id_sock, unsigned char* package, int block_numb
 				out_file = fopen(file_name, "w");
 			}
 			int aux = package[2]*256+package[3];
-			printf("Bloque mio %d, aux %d \n", block_number, aux);
+			printf("Bloque mio %d, aux %d, prueba %d \n", block_number, aux, package[3]);
 			if(block_number > aux){
 				printf("Error: package order failure\n");
 				exit(EXIT_FAILURE);
 			}
 			fwrite(package+4, sizeof(char), size - 4,out_file); 
 			fflush(out_file);
-			error = sendto(id_sock, ackPackage(aux), package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
-			if (error < 0)
-			{
-				perror("sendto()");
-				error = close(id_sock);
-				if (error < 0)
-				{
-					perror("close()");
-					exit(EXIT_FAILURE);
-				}
-				exit(EXIT_FAILURE);
-			};
-
+			package_out = ackPackage(aux);
 			break;
 
 		case 4:
