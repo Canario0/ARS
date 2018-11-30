@@ -22,7 +22,7 @@ unsigned char* ackPackage(int);
 unsigned char* dataPackage(int, unsigned char *);
 void readAction(int);
 void writeAction(int);
-void checkPackage( int size, int id_sock, unsigned char*,unsigned char*, int  block_number);
+unsigned char* checkPackage( int size, int id_sock, unsigned char*, int  block_number);
 
 // Variables Globales
 struct in_addr server_ip;
@@ -103,8 +103,6 @@ int main(int argc, char const *argv[])
 	switch (request)
 	{
 		case 01:
-			printf("hola");
-			fflush(stdout);
 			readAction(id_sock);
 			break;
 		case 02:
@@ -291,7 +289,6 @@ unsigned char* ackPackage(int block_number)
 	package[2]= block_number/256;
 	package[3]= block_number%256;
 	package_size += 2;
-	printf("%d, %d, %d, %d\n", package[0], package[1], package[2],package[3]);
 	return package;
 }
 
@@ -320,7 +317,6 @@ unsigned char* dataPackage(int block_number, unsigned char *data)
 		perror("Datos sprintf()");
 		exit(EXIT_FAILURE);
 	}
-	printf("Esto es lo que escribo %d", aux_size);
 	package_size += aux_size;
 	return package;
 }
@@ -356,24 +352,12 @@ void readAction(int id_sock)
 	socklen_t len = sizeof(remote_addr);
 	int recv_nu =0;
 	// Recibo los datos solicitados al servidor comprobando posibles errores
-	 recv_nu = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
-	if (recv_nu < 0)
-	{
-		perror("recvfrom()");
-		error = close(id_sock);
-		if (error < 0)
-		{
-			perror("close()");
-			exit(EXIT_FAILURE);
-		}
-		exit(EXIT_FAILURE);
-	}
-	checkPackage(error,id_sock,  package_in, package_out, 0);
-	int block_num=1;
-	while(recv_nu-4 == 512){
+	int block_num=0;
+	do{
 		recv_nu = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
 		if (recv_nu < 0)
 		{
+			fclose(out_file);
 			perror("recvfrom()");
 			error = close(id_sock);
 			if (error < 0)
@@ -383,10 +367,11 @@ void readAction(int id_sock)
 			}
 			exit(EXIT_FAILURE);
 		}
-		checkPackage(error,id_sock,  package_in , package_out,block_num);
+		package_out = checkPackage(recv_nu, id_sock,  package_in ,block_num);
 		error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
 		if (error < 0)
 		{
+			fclose(out_file);
 			perror("sendto()");
 			error = close(id_sock);
 			if (error < 0)
@@ -397,7 +382,7 @@ void readAction(int id_sock)
 			exit(EXIT_FAILURE);
 		}
 		block_num ++;
-	}
+	}while(recv_nu-4 == 512);
 	fclose(out_file);
 }
 
@@ -407,32 +392,38 @@ void writeAction(int id_sock)
 
 
 
-void checkPackage( int size, int id_sock, unsigned char* package,unsigned char* package_out, int block_number){
+unsigned char * checkPackage( int size, int id_sock, unsigned char* package, int block_number){
+	int aux;
 	switch(package[1]){
 		case 1:
 			break;
 
 		case 3:
-			if (out_file == NULL){
-				out_file = fopen(file_name, "w");
-			}
-			int aux = package[2]*256+package[3];
-			printf("Bloque mio %d, aux %d, prueba %d \n", block_number, aux, package[3]);
-			if(block_number > aux){
+			aux = package[2]*256+package[3];
+			if(block_number >= aux){
 				printf("Error: package order failure\n");
 				exit(EXIT_FAILURE);
 			}
-			fwrite(package+4, sizeof(char), size - 4,out_file); 
+			if (out_file == NULL){
+				out_file = fopen(file_name, "wb");
+				if (out_file == NULL) {
+					printf("Oh shit\nÂ");
+					fflush(stdout);
+				}
+			}
+			fwrite(package+4, 1, size - 4,out_file); 
 			fflush(out_file);
-			package_out = ackPackage(aux);
-			break;
+			printf("Bloque mio %d, aux %d, size %d\n", block_number, aux, size-4);
+			fflush(stdout);
+			return ackPackage(aux);
 
 		case 4:
 
 			break;
 		case 5:
-			printf("Error code: %d ''%s''\n", package[3], (char*) package+4);
+			printf("Error code: %d. %s\n", package[3], (char*) package+4);
 			exit(EXIT_FAILURE);
 
 	}
+	return NULL;
 }
