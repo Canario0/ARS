@@ -22,7 +22,7 @@ unsigned char* ackPackage(int);
 unsigned char* dataPackage(int, unsigned char *);
 void readAction(int);
 void writeAction(int);
-unsigned char* checkPackage( int size, int id_sock, unsigned char*, int  block_number);
+unsigned char* checkPackage( int size, unsigned char*, int  block_number);
 
 // Variables Globales
 struct in_addr server_ip;
@@ -32,6 +32,7 @@ char *file_name;
 int vervose = 0;
 int package_size = 0;
 FILE *out_file = NULL;
+FILE *in_file = NULL;
 
 int main(int argc, char const *argv[])
 {
@@ -148,11 +149,11 @@ void output(int const pos, char const *argv[], const int total)
 
 		if (strcmp(argv[pos], "-r") == 0)
 		{
-			request = 01;
+			request = 1;
 		}
 		else
 		{
-			request = 02;
+			request = 2;
 		}
 		printf("Modo %s\n", argv[pos]);
 	}
@@ -242,7 +243,7 @@ unsigned char* readWriteRequest()
 		perror("Fallo al reservar memoria para el paquete RRQ o WRQ");
 		exit(EXIT_FAILURE);
 	}
-	package[1]= 1;
+	package[1]= request;
 	package_size = 2;
 	int aux_size;
 	aux_size = sprintf((char *)(package + 2), "%s",file_name);
@@ -294,6 +295,7 @@ unsigned char* ackPackage(int block_number)
 
 unsigned char* dataPackage(int block_number, unsigned char *data)
 {
+	int aux_size=0;
 	package_size = 0;
 	unsigned char *package;
 	if ((package = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
@@ -303,21 +305,9 @@ unsigned char* dataPackage(int block_number, unsigned char *data)
 	}
 	package[1]=3;
 	package_size = 2;
-	int aux_size;
-	aux_size = sprintf((char *)(package + 2), "%02d", block_number);
-	if (aux_size < 0)
-	{
-		perror("Numero de bloque sprintf()");
-		exit(EXIT_FAILURE);
-	}
-	package_size += aux_size;
-	aux_size = sprintf( (char*)(package + package_size), "%s", data);
-	if (aux_size < 0)
-	{
-		perror("Datos sprintf()");
-		exit(EXIT_FAILURE);
-	}
-	package_size += aux_size;
+	package[2]= block_number/256;
+        package[3]= block_number%256;	
+	package_size += 2;
 	return package;
 }
 void readAction(int id_sock)
@@ -367,7 +357,7 @@ void readAction(int id_sock)
 			}
 			exit(EXIT_FAILURE);
 		}
-		package_out = checkPackage(recv_nu, id_sock,  package_in ,block_num);
+		package_out = checkPackage(recv_nu,  package_in ,block_num);
 		error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
 		if (error < 0)
 		{
@@ -388,16 +378,81 @@ void readAction(int id_sock)
 
 void writeAction(int id_sock)
 {
+	int error;
+	struct sockaddr_in remote_addr;
+	remote_addr.sin_family = AF_INET;
+	remote_addr.sin_port = server_port;
+	remote_addr.sin_addr = server_ip;
+	unsigned char *package_out;
+	package_out = readWriteRequest();
+	error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+	if (error < 0)
+	{
+		perror("sendto()");
+		error = close(id_sock);
+		if (error < 0)
+		{
+			perror("close()");
+			exit(EXIT_FAILURE);
+		}
+		exit(EXIT_FAILURE);
+	}
+
+	unsigned char *package_in;
+	if ((package_in = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
+	{
+		perror("Fallo al reservar memoria para los datos entrantes");
+		exit(EXIT_FAILURE);
+	}
+	socklen_t len = sizeof(remote_addr);
+	int send_nu =0;
+	// Recibo los datos solicitados al servidor comprobando posibles errores
+	int block_num=0;
+	do{
+		error = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
+		if (error < 0)
+		{
+			fclose(out_file);
+			perror("recvfrom()");
+			error = close(id_sock);
+			if (error < 0)
+			{
+				perror("close()");
+				exit(EXIT_FAILURE);
+			}
+			exit(EXIT_FAILURE);
+		}
+		package_out = checkPackage(0, package_in ,block_num);
+		send_nu = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+		if (send_nu < 0)
+		{
+			fclose(out_file);
+			perror("sendto()");
+			error = close(id_sock);
+			if (error < 0)
+			{
+				perror("close()");
+				exit(EXIT_FAILURE);
+			}
+			exit(EXIT_FAILURE);
+		}
+		block_num ++;
+	}while(send_nu-4 == 512);
+	fclose(in_file);
 }
 
 
 
-unsigned char * checkPackage( int size, int id_sock, unsigned char* package, int block_number){
-	int aux;
+unsigned char * checkPackage( int size, unsigned char* package, int block_number){
+	unsigned int aux;
+	int read_bytes;
+	unsigned char * buffer;
+	if ((buffer = (unsigned char *)calloc(512, sizeof(unsigned char))) == 0)
+	{
+		perror("Fallo al reservar memoria para los datos entrantes");
+		exit(EXIT_FAILURE);
+	}
 	switch(package[1]){
-		case 1:
-			break;
-
 		case 3:
 			aux = package[2]*256+package[3];
 			if(block_number >= aux){
@@ -406,10 +461,6 @@ unsigned char * checkPackage( int size, int id_sock, unsigned char* package, int
 			}
 			if (out_file == NULL){
 				out_file = fopen(file_name, "wb");
-				if (out_file == NULL) {
-					printf("Oh shit\nÂ");
-					fflush(stdout);
-				}
 			}
 			fwrite(package+4, 1, size - 4,out_file); 
 			fflush(out_file);
@@ -417,9 +468,21 @@ unsigned char * checkPackage( int size, int id_sock, unsigned char* package, int
 			fflush(stdout);
 			return ackPackage(aux);
 
-		case 4:
+		case 4: 
+			aux = package[2]*256+package[3];
+			if(block_number != aux){
+				printf("Error: package order failure\n");
+				exit(EXIT_FAILURE);
+			}
+			if (in_file == NULL){
+				in_file	= fopen(file_name, "rb");
+			}
+			unsigned char* prueba =dataPackage(aux+1, buffer);  
+			read_bytes = fread(prueba +4, 1, 512, in_file);
+			package_size += read_bytes;
+			return prueba;
+			
 
-			break;
 		case 5:
 			printf("Error code: %d. %s\n", package[3], (char*) package+4);
 			exit(EXIT_FAILURE);
