@@ -100,7 +100,7 @@ int main(int argc, char const *argv[])
 	}
 	// Fin bloque de bind
 
-	//Inicio de la transmisión de datos
+	//Inicio de la comunicación
 	switch (request)
 	{
 	case 01:
@@ -114,6 +114,8 @@ int main(int argc, char const *argv[])
 		exit(EXIT_FAILURE);
 	}
 	free(file_name);
+	// Fin de la comunicación
+
 	// Cierro el socket
 	error = close(id_sock);
 	if (error < 0)
@@ -155,7 +157,6 @@ void output(int const pos, char const *argv[], const int total)
 		{
 			request = 2;
 		}
-		printf("Modo %s\n", argv[pos]);
 	}
 	else if (strcmp(argv[pos], "-v") == 0)
 	{
@@ -178,7 +179,6 @@ void output(int const pos, char const *argv[], const int total)
 			{
 				ipError(argv[pos]);
 			}
-			printf("La ip es: %d\n", server_ip.s_addr);
 		}
 		else
 		{
@@ -191,7 +191,6 @@ void output(int const pos, char const *argv[], const int total)
 				exit(EXIT_FAILURE);
 			}
 			strncpy(file_name, argv[pos], 100);
-			printf("Nombre del archivo %s \n", file_name);
 		}
 	}
 }
@@ -234,6 +233,12 @@ void ipError(const char *in)
 	exit(EXIT_FAILURE);
 }
 
+/**
+ * Función que crea tanto los paquetes de lectura como los de escritura, 
+ * para saber qué código de operación poner se usa una variable global 
+ * que contiene el código correspondiente y es asignada por el método
+ * output().
+ */
 unsigned char *readWriteRequest()
 {
 	package_size = 0;
@@ -266,6 +271,10 @@ unsigned char *readWriteRequest()
 	return package;
 }
 
+/**
+ * Función para crear los paquetes ack que se enviarán al servidor.
+ * block_number número de bloque
+ */
 unsigned char *ackPackage(int block_number)
 {
 	package_size = 0;
@@ -277,12 +286,17 @@ unsigned char *ackPackage(int block_number)
 	}
 	package[1] = 4;
 	package_size = 2;
+	//Posible mejora sacar ese código a una función
 	package[2] = block_number / 256;
 	package[3] = block_number % 256;
 	package_size += 2;
 	return package;
 }
 
+/**
+ * Función para crear los paquetes de datos, antes tb escribía los datos en la misma función pero lo saque por errores.
+ * Una mejora sería escribir tb los datos dentro.
+ */
 unsigned char *dataPackage(int block_number)
 {
 	package_size = 0;
@@ -294,11 +308,16 @@ unsigned char *dataPackage(int block_number)
 	}
 	package[1] = 3;
 	package_size = 2;
+	//Posible mejora sacar ese código a una función
 	package[2] = block_number / 256;
 	package[3] = block_number % 256;
 	package_size += 2;
 	return package;
 }
+
+/**
+ * Secuencia de acciones que lanza la solicitud de lectura de un fichero.
+ */
 void readAction(int id_sock)
 {
 
@@ -309,6 +328,11 @@ void readAction(int id_sock)
 	remote_addr.sin_addr = server_ip;
 	unsigned char *package_out;
 	package_out = readWriteRequest();
+	if (vervose)
+	{
+		printf("Enviada solicitud de lectura de %s a servidor tftp en %s\n", file_name, inet_ntoa(server_ip));
+		fflush(stdout);
+	}
 	error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
 	if (error < 0)
 	{
@@ -367,9 +391,17 @@ void readAction(int id_sock)
 		}
 		block_num++;
 	} while (recv_nu - 4 == 512);
+	if (vervose)
+	{
+		printf("Ultimo paquete enviado.\n");
+		fflush(stdout);
+	}
 	fclose(out_file);
 }
 
+/**
+ * Secuencia de acciones que lanza la solicitud de escritura de un fichero.
+ */
 void writeAction(int id_sock)
 {
 	int error;
@@ -379,6 +411,11 @@ void writeAction(int id_sock)
 	remote_addr.sin_addr = server_ip;
 	unsigned char *package_out;
 	package_out = readWriteRequest();
+	if (vervose)
+	{
+		printf("Enviada solicitud de escritura de %s a servidor tftp en %s\n", file_name, inet_ntoa(server_ip));
+		fflush(stdout);
+	}
 	error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
 	if (error < 0)
 	{
@@ -400,7 +437,6 @@ void writeAction(int id_sock)
 	}
 	socklen_t len = sizeof(remote_addr);
 	int send_nu = 0;
-	// Recibo los datos solicitados al servidor comprobando posibles errores
 	int block_num = 0;
 	do
 	{
@@ -440,20 +476,24 @@ void writeAction(int id_sock)
 	fclose(in_file);
 }
 
+/**
+ * Función que centraliza el parseo de paquetes.
+ */
 unsigned char *checkPackage(int size, unsigned char *package, int block_number)
 {
 	unsigned int aux;
 	int read_bytes;
-	unsigned char *buffer;
-	if ((buffer = (unsigned char *)calloc(512, sizeof(unsigned char))) == 0)
-	{
-		perror("Fallo al reservar memoria para los datos entrantes");
-		exit(EXIT_FAILURE);
-	}
 	switch (package[1])
 	{
+	// En el caso de recibir un bloque
 	case 3:
 		aux = package[2] * 256 + package[3];
+		if (vervose)
+		{
+			printf("Recibido bloque del servidor tftp.\n");
+			printf("Es el bloque con codigo %d.\n", aux);
+			fflush(stdout);
+		}
 		if (block_number >= aux)
 		{
 			printf("Error: package order failure\n");
@@ -465,12 +505,21 @@ unsigned char *checkPackage(int size, unsigned char *package, int block_number)
 		}
 		fwrite(package + 4, 1, size - 4, out_file);
 		fflush(out_file);
-		printf("Bloque mio %d, aux %d, size %d\n", block_number, aux, size - 4);
-		fflush(stdout);
+		if (vervose)
+		{
+			printf("Enviamos el ACK del bloque %d", aux);
+			fflush(stdout);
+		}
 		return ackPackage(aux);
-
+	// En el caso de recibir un ack
 	case 4:
 		aux = package[2] * 256 + package[3];
+		if (vervose)
+		{
+			printf("Recibido ack del servidor tftp.\n");
+			printf("Es el ack con codigo %d.\n", aux);
+			fflush(stdout);
+		}
 		if (block_number != aux)
 		{
 			printf("Error: package order failure\n");
@@ -483,11 +532,20 @@ unsigned char *checkPackage(int size, unsigned char *package, int block_number)
 		unsigned char *prueba = dataPackage(aux + 1);
 		read_bytes = fread(prueba + 4, 1, 512, in_file);
 		package_size += read_bytes;
+		if (vervose)
+		{
+			printf("Enviamos el bloque %d", aux);
+			fflush(stdout);
+		}
 		return prueba;
-
+	// En el caso de recibir un error
 	case 5:
 		printf("Error code: %d. %s\n", package[3], (char *)package + 4);
 		exit(EXIT_FAILURE);
 	}
+	//Nunca debería llegar a este punto
 	return NULL;
 }
+
+// Una mejora , en el caso de que se pudiera subir más de un archivo a la entrega, consiste en separ el main, los prototipos
+// y las implementaciones de las funciones
