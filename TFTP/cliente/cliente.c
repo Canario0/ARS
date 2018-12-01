@@ -507,7 +507,7 @@ unsigned char *checkPackage(int size, unsigned char *package, int block_number)
 		fflush(out_file);
 		if (vervose)
 		{
-			printf("Enviamos el ACK del bloque %d", aux);
+			printf("Enviamos el ACK del bloque %d\n", aux);
 			fflush(stdout);
 		}
 		return ackPackage(aux);
@@ -534,7 +534,7 @@ unsigned char *checkPackage(int size, unsigned char *package, int block_number)
 		package_size += read_bytes;
 		if (vervose)
 		{
-			printf("Enviamos el bloque %d", aux);
+			printf("Enviamos el bloque %d\n", aux+1);
 			fflush(stdout);
 		}
 		return prueba;
