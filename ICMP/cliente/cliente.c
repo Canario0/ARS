@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/unistd.h>
+#include "ip-icmp-ping.h"
 
 #define PROGRAM_NAME "miping-Renero-Balganon"
 #define MODE "octet"
@@ -17,12 +18,9 @@ void paramError();
 void noParamError();
 void ayuda();
 void ipError(const char *);
-unsigned char *readWriteRequest();
+ECHORequest icmpRequest();
 unsigned char *ackPackage(int);
 unsigned char *dataPackage(int);
-void readAction(int);
-void writeAction(int);
-unsigned char *checkPackage(int size, unsigned char *, int block_number);
 
 // Variables Globales
 struct in_addr server_ip;
@@ -204,36 +202,22 @@ void ipError(const char *in)
  * que contiene el código correspondiente y es asignada por el método
  * output().
  */
-unsigned char *readWriteRequest()
+ECHORequest icmpRequest()
 {
-	package_size = 0;
-	unsigned char *package;
-	if ((package = (unsigned char *)calloc(512, sizeof(unsigned char))) == 0)
+	ECHORequest request;
+	request.icmpHeader.Type=8;
+	request.icmpHeader.Code=0;
+	request.icmpHeader.Checksum=0;
+	request.ID=getpid();
+	request.SeqNumber=getpid();
+	int error;
+	error = snprintf(request.payload, 64,"%s", "czhQcNOEMqbWMMrCadhKsUavCWatwGehkdYFllUYSXwBDYcKkXQKcLKJCNqZ");
+	if (error < 0)
 	{
-		perror("Fallo al reservar memoria para el paquete RRQ o WRQ");
+		perror("ICMP request sprintf()");
 		exit(EXIT_FAILURE);
 	}
-	package[1] = request;
-	package_size = 2;
-	int aux_size;
-	aux_size = sprintf((char *)(package + 2), "%s", file_name);
-	if (aux_size < 0)
-	{
-		perror("Nombre del archivo sprintf()");
-		exit(EXIT_FAILURE);
-	}
-	package_size += aux_size;
-	package_size++;
-	aux_size = sprintf((char *)package + package_size, "%s", MODE);
-	if (aux_size < 0)
-	{
-		perror("Modo sprintf()");
-		exit(EXIT_FAILURE);
-	}
-	package_size += aux_size;
-	package[package_size] = 0;
-	package_size++;
-	return package;
+	return request;
 }
 
 /**
@@ -279,238 +263,3 @@ unsigned char *dataPackage(int block_number)
 	package_size += 2;
 	return package;
 }
-
-/**
- * Secuencia de acciones que lanza la solicitud de lectura de un fichero.
- */
-void readAction(int id_sock)
-{
-
-	int error;
-	struct sockaddr_in remote_addr;
-	remote_addr.sin_family = AF_INET;
-	remote_addr.sin_port = server_port;
-	remote_addr.sin_addr = server_ip;
-	unsigned char *package_out;
-	package_out = readWriteRequest();
-	if (vervose)
-	{
-		printf("Enviada solicitud de lectura de %s a servidor tftp en %s\n", file_name, inet_ntoa(server_ip));
-		fflush(stdout);
-	}
-	error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
-	if (error < 0)
-	{
-		perror("sendto()");
-		error = close(id_sock);
-		if (error < 0)
-		{
-			perror("close()");
-			exit(EXIT_FAILURE);
-		}
-		exit(EXIT_FAILURE);
-	}
-
-	unsigned char *package_in;
-	if ((package_in = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
-	{
-		perror("Fallo al reservar memoria para los datos entrantes");
-		exit(EXIT_FAILURE);
-	}
-	socklen_t len = sizeof(remote_addr);
-	int recv_nu = 0;
-	// Recibo los datos solicitados al servidor comprobando posibles errores
-	int block_num = 0;
-	do
-	{
-		recv_nu = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
-		if (recv_nu < 0)
-		{
-			fclose(out_file);
-			perror("recvfrom()");
-			error = close(id_sock);
-			if (error < 0)
-			{
-				perror("close()");
-				exit(EXIT_FAILURE);
-			}
-			exit(EXIT_FAILURE);
-		}
-		if (package_out != 0)
-		{
-			free(package_out);
-		}
-		package_out = checkPackage(recv_nu, package_in, block_num);
-		error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
-		if (error < 0)
-		{
-			fclose(out_file);
-			perror("sendto()");
-			error = close(id_sock);
-			if (error < 0)
-			{
-				perror("close()");
-				exit(EXIT_FAILURE);
-			}
-			exit(EXIT_FAILURE);
-		}
-		block_num++;
-	} while (recv_nu - 4 == 512);
-	if (vervose)
-	{
-		printf("Ultimo paquete enviado.\n");
-		fflush(stdout);
-	}
-	fclose(out_file);
-}
-
-/**
- * Secuencia de acciones que lanza la solicitud de escritura de un fichero.
- */
-void writeAction(int id_sock)
-{
-	int error;
-	struct sockaddr_in remote_addr;
-	remote_addr.sin_family = AF_INET;
-	remote_addr.sin_port = server_port;
-	remote_addr.sin_addr = server_ip;
-	unsigned char *package_out;
-	package_out = readWriteRequest();
-	if (vervose)
-	{
-		printf("Enviada solicitud de escritura de %s a servidor tftp en %s\n", file_name, inet_ntoa(server_ip));
-		fflush(stdout);
-	}
-	error = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
-	if (error < 0)
-	{
-		perror("sendto()");
-		error = close(id_sock);
-		if (error < 0)
-		{
-			perror("close()");
-			exit(EXIT_FAILURE);
-		}
-		exit(EXIT_FAILURE);
-	}
-
-	unsigned char *package_in;
-	if ((package_in = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
-	{
-		perror("Fallo al reservar memoria para los datos entrantes");
-		exit(EXIT_FAILURE);
-	}
-	socklen_t len = sizeof(remote_addr);
-	int send_nu = 0;
-	int block_num = 0;
-	do
-	{
-		error = recvfrom(id_sock, package_in, 516, 0, (struct sockaddr *)&remote_addr, &len);
-		if (error < 0)
-		{
-			fclose(in_file);
-			perror("recvfrom()");
-			error = close(id_sock);
-			if (error < 0)
-			{
-				perror("close()");
-				exit(EXIT_FAILURE);
-			}
-			exit(EXIT_FAILURE);
-		}
-		if (package_out != 0)
-		{
-			free(package_out);
-		}
-		package_out = checkPackage(0, package_in, block_num);
-		send_nu = sendto(id_sock, package_out, package_size, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
-		if (send_nu < 0)
-		{
-			fclose(in_file);
-			perror("sendto()");
-			error = close(id_sock);
-			if (error < 0)
-			{
-				perror("close()");
-				exit(EXIT_FAILURE);
-			}
-			exit(EXIT_FAILURE);
-		}
-		block_num++;
-	} while (send_nu - 4 == 512);
-	fclose(in_file);
-}
-
-/**
- * Función que centraliza el parseo de paquetes.
- */
-unsigned char *checkPackage(int size, unsigned char *package, int block_number)
-{
-	unsigned int aux;
-	int read_bytes;
-	switch (package[1])
-	{
-		// En el caso de recibir un bloque
-		case 3:
-			aux = package[2] * 256 + package[3];
-			if (vervose)
-			{
-				printf("Recibido bloque del servidor tftp.\n");
-				printf("Es el bloque con codigo %d.\n", aux);
-				fflush(stdout);
-			}
-			if (block_number >= aux)
-			{
-				printf("Error: package order failure\n");
-				exit(EXIT_FAILURE);
-			}
-			if (out_file == NULL)
-			{
-				out_file = fopen(file_name, "wb");
-			}
-			fwrite(package + 4, 1, size - 4, out_file);
-			fflush(out_file);
-			if (vervose)
-			{
-				printf("Enviamos el ACK del bloque %d\n", aux);
-				fflush(stdout);
-			}
-			return ackPackage(aux);
-			// En el caso de recibir un ack
-		case 4:
-			aux = package[2] * 256 + package[3];
-			if (vervose)
-			{
-				printf("Recibido ack del servidor tftp.\n");
-				printf("Es el ack con codigo %d.\n", aux);
-				fflush(stdout);
-			}
-			if (block_number != aux)
-			{
-				printf("Error: package order failure\n");
-				exit(EXIT_FAILURE);
-			}
-			if (in_file == NULL)
-			{
-				in_file = fopen(file_name, "rb");
-			}
-			unsigned char *prueba = dataPackage(aux + 1);
-			read_bytes = fread(prueba + 4, 1, 512, in_file);
-			package_size += read_bytes;
-			if (vervose)
-			{
-				printf("Enviamos el bloque %d\n", aux+1);
-				fflush(stdout);
-			}
-			return prueba;
-			// En el caso de recibir un error
-		case 5:
-			printf("Error code: %d. %s\n", package[3], (char *)package + 4);
-			exit(EXIT_FAILURE);
-	}
-	//Nunca debería llegar a este punto
-	return NULL;
-}
-
-// Una mejora , en el caso de que se pudiera subir más de un archivo a la entrega, consiste en separ el main, los prototipos
-// y las implementaciones de las funciones
