@@ -96,7 +96,7 @@ int main(int argc, char const *argv[])
 		}
 		exit(EXIT_FAILURE);
 	}
-	printf("Respuesta recibida desde %s\n", inet_ntoa(echo_response.ipHeader.iaDst));
+	printf("Respuesta recibida desde %s\n", inet_ntoa(echo_response.ipHeader.iaSrc));
 	if (verbose)
 	{
 		printf(FLECHA_VERDE"Tamaño de la respuesta: %d\n", error);
