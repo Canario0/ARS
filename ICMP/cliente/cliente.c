@@ -98,6 +98,7 @@ int main(int argc, char const *argv[])
 	}
 	printf("Respuesta recibida desde %s\n", inet_ntoa(echo_response.ipHeader.iaDst));
 	printf("Descripción de la respuesta: %s\n", echo_response.payload);
+	printf("Type: %d Code: %d\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
 
 #endif
 	return 0;
