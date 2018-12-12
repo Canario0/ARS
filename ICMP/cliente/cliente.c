@@ -97,7 +97,13 @@ int main(int argc, char const *argv[])
 		exit(EXIT_FAILURE);
 	}
 	printf("Respuesta recibida desde %s\n", inet_ntoa(echo_response.ipHeader.iaDst));
-	printf("Descripción de la respuesta: %s\n", echo_response.payload);
+	if (verbose)
+	{
+		printf(FLECHA_VERDE"Tamaño de la respuesta: %d\n", error);
+		printf(FLECHA_VERDE"Cadena recibida: %s\n", echo_response.payload);
+		printf(FLECHA_VERDE"Identifier (pid): %d\n",echo_response.ID);
+		printf(FLECHA_VERDE"TTL: %d\n", echo_response.ipHeader.TotLen);
+	}
 	printf("Type: %d Code: %d\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
 
 #endif
