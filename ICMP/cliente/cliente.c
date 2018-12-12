@@ -102,7 +102,7 @@ int main(int argc, char const *argv[])
 		printf(FLECHA_VERDE"Tamaño de la respuesta: %d\n", error);
 		printf(FLECHA_VERDE"Cadena recibida: %s\n", echo_response.payload);
 		printf(FLECHA_VERDE"Identifier (pid): %d\n",echo_response.ID);
-		printf(FLECHA_VERDE"TTL: %d\n", echo_response.ipHeader.TotLen);
+		printf(FLECHA_VERDE"TTL: %s\n", echo_response.ipHeader.TTL);
 	}
 	printf("Type: %d Code: %d\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
 
