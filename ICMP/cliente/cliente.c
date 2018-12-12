@@ -96,9 +96,9 @@ int main(int argc, char const *argv[])
 		}
 		exit(EXIT_FAILURE);
 	}
-	printf("Respuesta recibida desde %s\n", inet_ntoa(echo_response.ipHeader.iaSrc));
+	printf("Respuesta recibida desde %s\n", inet_ntoa(echo_response.ipHeader.iaDst));
 	printf("Descripción de la respuesta: %s\n", echo_response.payload);
-	
+
 #endif
 	return 0;
 }
@@ -218,7 +218,13 @@ ECHORequest icmpRequest(int seq)
 		printf(FLECHA_VERDE "Seq. number: %d\n", request.SeqNumber);
 	}
 	// La cadena ha sido autogenerada, no representa nada
-	strncpy(request.payload, "czhQcNOEMqbWMMrCadhKsUavCWatwGehkdYFllUYSXwBDYcKkXQKcLKJCNqZczhQ", 64);
+	int error;
+	error = snprintf(request.payload, 64, "%s", "czhQcNOEMqbWMMrCadhKsUavCWatwGehkdYFllUYSXwBDYcKkXQKcLKJCNqZczh");
+	if (error < 0)
+	{
+		perror("sprintf()");
+		exit(EXIT_FAILURE);
+	}
 	if (verbose)
 	{
 		printf(FLECHA_VERDE "Cadena a enviar: %s\n", request.payload);
@@ -228,7 +234,7 @@ ECHORequest icmpRequest(int seq)
 	if (verbose)
 	{
 		printf(FLECHA_VERDE "Checksum: 0x%x\n", request.icmpHeader.Checksum);
-		printf(FLECHA_VERDE "Tamaño total del paquete ICMP: %d\n", 8 + REQ_DATASIZE);
+		printf(FLECHA_VERDE "Tamaño total del paquete ICMP: %d\n", 8 + error + 1);
 	}
 
 	return request;
@@ -248,4 +254,3 @@ unsigned short int checksum(ECHORequest request)
 	acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
 	return ~acumulador;
 }
-
