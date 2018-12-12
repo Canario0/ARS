@@ -10,24 +10,21 @@
 #include <sys/unistd.h>
 #include "ip-icmp-ping.h"
 
+#define PRUEBA 0
 #define PROGRAM_NAME "miping-Renero-Balganon"
-#define MODE "octet"
+#define FLECHA_VERDE "\033[1;32m->\033[0m "
 
 void output(int const pos, char const *argv[], const int total);
 void paramError();
 void noParamError();
 void ayuda();
 void ipError(const char *);
-ECHORequest icmpRequest();
-unsigned char *ackPackage(int);
-unsigned char *dataPackage(int);
+ECHORequest icmpRequest(int);
+unsigned short int checksum(ECHORequest);
 
 // Variables Globales
 struct in_addr server_ip;
-uint16_t server_port;
-int request;
-int vervose = 0;
-int package_size = 0;
+int verbose = 0;
 
 int main(int argc, char const *argv[])
 {
@@ -39,84 +36,70 @@ int main(int argc, char const *argv[])
 	}
 
 	// Compruebo que si existen más de un parámetro de entrada tienen e ser tres o cuatro en total
-	if ((argc - 1) > 2 )
+	if ((argc - 1) > 2)
 	{
 		paramError();
 	}
 
 	output(1, argv, argc - 1);
 
-	if(argc ==3){
+	if (argc == 3)
+	{
 		output(2, argv, argc - 1);
 	}
-//	// Obtenemos el número del puerto TFTP
-//	struct servent *aux;
-//	aux = getservbyname("tftp", "udp");
-//	// Si el resultado es NULL imprimimos el mensaje de error
-//	if (!aux)
-//	{
-//		perror("getservbyname()");
-//		exit(EXIT_FAILURE);
-//	}
-//	server_port = aux->s_port;
-//	// Fin bloque datos de entrada
-//
-//	//Bloque del socket
-//	int id_sock;
-//	//Creamos el socket y comprobamos los posibles errores
-//	id_sock = socket(AF_INET, SOCK_DGRAM, 0);
-//	if (id_sock == -1)
-//	{
-//		perror("socket()");
-//		exit(EXIT_FAILURE);
-//	}
-//	// Fin bloque del socket
-//
-//	// Bloque de bind
-//	int error;
-//	struct sockaddr_in local_addr;
-//	local_addr.sin_family = AF_INET;
-//	local_addr.sin_port = 0;
-//	local_addr.sin_addr.s_addr = INADDR_ANY;
-//	// Hacemos el bind con el puerto y comprobamos los errores
-//	error = bind(id_sock, (struct sockaddr *)&local_addr, sizeof(local_addr));
-//	if (error < 0)
-//	{
-//		perror("bind()");
-//		// En el caso de que el bind falle el socket se queda encendido, por eso hay que cerrarlo
-//		error = close(id_sock);
-//		if (error < 0)
-//		{
-//			perror("close()");
-//			exit(EXIT_FAILURE);
-//		}
-//		exit(EXIT_FAILURE);
-//	}
-//	// Fin bloque de bind
-//
-//	//Inicio de la comunicación
-//	switch (request)
-//	{
-//		case 01:
-//			readAction(id_sock);
-//			break;
-//		case 02:
-//			writeAction(id_sock);
-//			break;
-//		default:
-//			printf("Failure of the program");
-//			exit(EXIT_FAILURE);
-//	}
-//	free(file_name);
-//	// Fin de la comunicación
-//
-//	// Cierro el socket
-//	error = close(id_sock);
-//	if (error < 0)
-//	{
-//		perror("close()");
-//		exit(EXIT_FAILURE);
-//	}
+	//Creo el paquete que se va a enviar
+	ECHORequest echo_request = icmpRequest(0);
+	// Fin bloque datos de entrada
+
+#if !PRUEBA
+	//Bloque del socket
+	int id_sock;
+	//Creamos el socket y comprobamos los posibles errores
+	id_sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+	if (id_sock == -1)
+	{
+		perror("socket()");
+		exit(EXIT_FAILURE);
+	}
+	int error;
+	// Fin bloque del socket
+	struct sockaddr_in remote_addr;
+	remote_addr.sin_family = AF_INET;
+	remote_addr.sin_port = 0;
+	remote_addr.sin_addr = server_ip;
+	// Llamos a la directiva sendto para enviar los datos, en el caso de que falle cerramos el socket e imprimimos el error
+	error = sendto(id_sock, &echo_request, sizeof(echo_request), 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+	printf("Paquete ICMP enviado a %s\n", inet_ntoa(server_ip));
+	if (error < 0)
+	{
+		perror("sendto()");
+		error = close(id_sock);
+		if (error < 0)
+		{
+			perror("close()");
+			exit(EXIT_FAILURE);
+		}
+		exit(EXIT_FAILURE);
+	}
+	ECHOResponse echo_response;
+	socklen_t len = sizeof(remote_addr);
+	// Recibo los datos solicitados al servidor comprobando posibles errores
+	error = recvfrom(id_sock, &echo_response, 92, 0, (struct sockaddr *)&remote_addr, &len);
+	if (error < 0)
+	{
+		perror("recvfrom()");
+		error = close(id_sock);
+		if (error < 0)
+		{
+			perror("close()");
+			exit(EXIT_FAILURE);
+		}
+		exit(EXIT_FAILURE);
+	}
+	printf("Respuesta recibida desde %s\n", inet_ntoa(echo_response.ipHeader.iaSrc));
+	printf("Descripción de la respuesta: %s\n", echo_response.payload);
+	
+#endif
 	return 0;
 }
 
@@ -143,7 +126,7 @@ void output(int const pos, char const *argv[], const int total)
 		if (pos != 2)
 			paramError();
 
-		vervose = 1;
+		verbose = 1;
 	}
 	else
 	{
@@ -197,69 +180,72 @@ void ipError(const char *in)
 }
 
 /**
- * Función que crea tanto los paquetes de lectura como los de escritura, 
- * para saber qué código de operación poner se usa una variable global 
- * que contiene el código correspondiente y es asignada por el método
- * output().
+ * Función que crea los paquetes de ICMP Request. 
+ * 
+ * seq valor de tipo entero, contiene el numero de la secuencia.
+ * return ECHORequest estructura con los datos a mandar.fire
  */
-ECHORequest icmpRequest()
+ECHORequest icmpRequest(int seq)
 {
 	ECHORequest request;
-	request.icmpHeader.Type=8;
-	request.icmpHeader.Code=0;
-	request.icmpHeader.Checksum=0;
-	request.ID=getpid();
-	request.SeqNumber=getpid();
-	int error;
-	error = snprintf(request.payload, 64,"%s", "czhQcNOEMqbWMMrCadhKsUavCWatwGehkdYFllUYSXwBDYcKkXQKcLKJCNqZ");
-	if (error < 0)
+	if (verbose)
 	{
-		perror("ICMP request sprintf()");
-		exit(EXIT_FAILURE);
+		printf(FLECHA_VERDE "Generando cabecera ICMP\n");
 	}
+
+	request.icmpHeader.Type = 8;
+	if (verbose)
+	{
+		printf(FLECHA_VERDE "Type: %d\n", request.icmpHeader.Type);
+	}
+
+	request.icmpHeader.Code = 0;
+	if (verbose)
+	{
+		printf(FLECHA_VERDE "Code: %d\n", request.icmpHeader.Code);
+	}
+
+	request.icmpHeader.Checksum = 0;
+
+	request.ID = getpid();
+	if (verbose)
+	{
+		printf(FLECHA_VERDE "Identifier (pid): %d\n", request.ID);
+	}
+	request.SeqNumber = seq;
+	if (verbose)
+	{
+		printf(FLECHA_VERDE "Seq. number: %d\n", request.SeqNumber);
+	}
+	// La cadena ha sido autogenerada, no representa nada
+	strncpy(request.payload, "czhQcNOEMqbWMMrCadhKsUavCWatwGehkdYFllUYSXwBDYcKkXQKcLKJCNqZczhQ", 64);
+	if (verbose)
+	{
+		printf(FLECHA_VERDE "Cadena a enviar: %s\n", request.payload);
+	}
+
+	request.icmpHeader.Checksum = checksum(request);
+	if (verbose)
+	{
+		printf(FLECHA_VERDE "Checksum: 0x%x\n", request.icmpHeader.Checksum);
+		printf(FLECHA_VERDE "Tamaño total del paquete ICMP: %d\n", 8 + REQ_DATASIZE);
+	}
+
 	return request;
 }
 
-/**
- * Función para crear los paquetes ack que se enviarán al servidor.
- * block_number número de bloque
- */
-unsigned char *ackPackage(int block_number)
+unsigned short int checksum(ECHORequest request)
 {
-	package_size = 0;
-	unsigned char *package;
-	if ((package = (unsigned char *)calloc(4, sizeof(unsigned char))) == 0)
+	int numShorts = sizeof(request) / 2;
+	unsigned short int *puntero = (unsigned short int *)&request;
+	int contador;
+	unsigned int acumulador = 0;
+	for (contador = 0; contador < numShorts; contador++)
 	{
-		perror("Fallo al reservar memoria para el paquete ACK");
-		exit(EXIT_FAILURE);
+		acumulador = acumulador + (unsigned int)puntero[contador];
 	}
-	package[1] = 4;
-	package_size = 2;
-	//Posible mejora sacar ese código a una función
-	package[2] = block_number / 256;
-	package[3] = block_number % 256;
-	package_size += 2;
-	return package;
+	acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
+	acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
+	return ~acumulador;
 }
 
-/**
- * Función para crear los paquetes de datos, antes tb escribía los datos en la misma función pero lo saque por errores.
- * Una mejora sería escribir tb los datos dentro.
- */
-unsigned char *dataPackage(int block_number)
-{
-	package_size = 0;
-	unsigned char *package;
-	if ((package = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
-	{
-		perror("Fallo al reservar memoria para el paquete de datos");
-		exit(EXIT_FAILURE);
-	}
-	package[1] = 3;
-	package_size = 2;
-	//Posible mejora sacar ese código a una función
-	package[2] = block_number / 256;
-	package[3] = block_number % 256;
-	package_size += 2;
-	return package;
-}
