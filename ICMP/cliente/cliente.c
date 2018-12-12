@@ -99,12 +99,45 @@ int main(int argc, char const *argv[])
 	printf("Respuesta recibida desde %s\n", inet_ntoa(echo_response.ipHeader.iaSrc));
 	if (verbose)
 	{
-		printf(FLECHA_VERDE"Tamaño de la respuesta: %d\n", error);
-		printf(FLECHA_VERDE"Cadena recibida: %s\n", echo_response.payload);
-		printf(FLECHA_VERDE"Identifier (pid): %d\n",echo_response.ID);
-		printf(FLECHA_VERDE"TTL: %u\n",echo_response.ipHeader.TTL);
+		printf(FLECHA_VERDE "Tamaño de la respuesta: %d\n", error);
+		printf(FLECHA_VERDE "Cadena recibida: %s\n", echo_response.payload);
+		printf(FLECHA_VERDE "Identifier (pid): %d\n", echo_response.ID);
+		printf(FLECHA_VERDE "TTL: %u\n", echo_response.ipHeader.TTL);
 	}
-	printf("Type: %d Code: %d\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+
+	switch (echo_response.icmpHeader.Type)
+	{
+	case 0:
+		printf("Descripción de la respuesta: respuesta correcta (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+	case 3:
+		if (echo_response.icmpHeader.Code == 0)
+		{
+			printf("Descripción de la respuesta: Destination network unreachable (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+		}
+		else if (echo_response.icmpHeader.Code == 1)
+		{
+			printf("Descripción de la respuesta: Destination host unreachable (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+		}
+		else if (echo_response.icmpHeader.Code == 6)
+		{
+			printf("Descripción de la respuesta: Destination network unknown (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+		}
+		else if (echo_response.icmpHeader.Code == 7)
+		{
+			printf("Descripción de la respuesta: Destination host unknown (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+		}
+		else
+		{
+			printf("Descripción de la respuesta: Destination unreachable (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+		}
+		exit(EXIT_FAILURE);
+	case 11:
+		printf("Descripción de la respuesta: Time Exceeded (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+		exit(EXIT_FAILURE);
+	default:
+		printf("Descripción de la respuesta: unknown error (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+		exit(EXIT_FAILURE);
+	}
 
 #endif
 	return 0;
