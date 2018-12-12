@@ -10,7 +10,6 @@
 #include <sys/unistd.h>
 #include "ip-icmp-ping.h"
 
-#define PRUEBA 0
 #define PROGRAM_NAME "miping-Renero-Balganon"
 #define FLECHA_VERDE "\033[1;32m->\033[0m "
 
@@ -21,6 +20,7 @@ void ayuda();
 void ipError(const char *);
 ECHORequest icmpRequest(int);
 unsigned short int checksum(ECHORequest);
+void fin(int);
 
 // Variables Globales
 struct in_addr server_ip;
@@ -35,7 +35,7 @@ int main(int argc, char const *argv[])
 		noParamError();
 	}
 
-	// Compruebo que si existen más de un parámetro de entrada tienen e ser tres o cuatro en total
+	// Compruebo que si existen más de un parámetro de entrada
 	if ((argc - 1) > 2)
 	{
 		paramError();
@@ -51,7 +51,6 @@ int main(int argc, char const *argv[])
 	ECHORequest echo_request = icmpRequest(0);
 	// Fin bloque datos de entrada
 
-#if !PRUEBA
 	//Bloque del socket
 	int id_sock;
 	//Creamos el socket y comprobamos los posibles errores
@@ -73,12 +72,7 @@ int main(int argc, char const *argv[])
 	if (error < 0)
 	{
 		perror("sendto()");
-		error = close(id_sock);
-		if (error < 0)
-		{
-			perror("close()");
-			exit(EXIT_FAILURE);
-		}
+		fin(id_sock);
 		exit(EXIT_FAILURE);
 	}
 	ECHOResponse echo_response;
@@ -88,12 +82,7 @@ int main(int argc, char const *argv[])
 	if (error < 0)
 	{
 		perror("recvfrom()");
-		error = close(id_sock);
-		if (error < 0)
-		{
-			perror("close()");
-			exit(EXIT_FAILURE);
-		}
+		fin(id_sock);
 		exit(EXIT_FAILURE);
 	}
 	printf("Respuesta recibida desde %s\n", inet_ntoa(echo_response.ipHeader.iaSrc));
@@ -105,6 +94,7 @@ int main(int argc, char const *argv[])
 		printf(FLECHA_VERDE "TTL: %u\n", echo_response.ipHeader.TTL);
 	}
 
+	// Parsea algunas combinaciones de tipo y codigo que he considerado relevantes y el resto se tratan como un error.
 	switch (echo_response.icmpHeader.Type)
 	{
 	case 0:
@@ -131,16 +121,20 @@ int main(int argc, char const *argv[])
 		{
 			printf("Descripción de la respuesta: Destination unreachable (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
 		}
+		fin(id_sock);
 		exit(EXIT_FAILURE);
 	case 11:
 		printf("Descripción de la respuesta: Time Exceeded (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+		fin(id_sock);
 		exit(EXIT_FAILURE);
 	default:
 		printf("Descripción de la respuesta: unknown error (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+		fin(id_sock);
 		exit(EXIT_FAILURE);
 	}
 
-#endif
+	//Ceramos el socket
+	fin(id_sock);
 	return 0;
 }
 
@@ -224,7 +218,7 @@ void ipError(const char *in)
  * Función que crea los paquetes de ICMP Request. 
  * 
  * seq valor de tipo entero, contiene el numero de la secuencia.
- * return ECHORequest estructura con los datos a mandar.fire
+ * return ECHORequest estructura con los datos a mandar
  */
 ECHORequest icmpRequest(int seq)
 {
@@ -281,6 +275,12 @@ ECHORequest icmpRequest(int seq)
 	return request;
 }
 
+/**
+ * Función para calcular el checksum del paquete generado.
+ * 
+ * request variable de tipo ECHORequest que contienen los datos sobre los que se va a calcular el checksum
+ * return retorna el resultado de hacer el checksum
+ */
 unsigned short int checksum(ECHORequest request)
 {
 	int numShorts = sizeof(request) / 2;
@@ -294,4 +294,19 @@ unsigned short int checksum(ECHORequest request)
 	acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
 	acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
 	return ~acumulador;
+}
+
+/**
+ * Funcion para cerrar el socket
+ */
+void fin(int id_sock)
+{
+	int error;
+	//Cerramos el soscket
+	error = close(id_sock);
+	if (error < 0)
+	{
+		perror("close()");
+		exit(EXIT_FAILURE);
+	}
 }
