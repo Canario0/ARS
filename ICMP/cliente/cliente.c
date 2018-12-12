@@ -109,6 +109,7 @@ int main(int argc, char const *argv[])
 	{
 	case 0:
 		printf("Descripción de la respuesta: respuesta correcta (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+		break;
 	case 3:
 		if (echo_response.icmpHeader.Code == 0)
 		{
