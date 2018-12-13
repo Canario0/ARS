@@ -127,6 +127,10 @@ int main(int argc, char const *argv[])
 		printf("Descripción de la respuesta: Time Exceeded (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
 		fin(id_sock);
 		exit(EXIT_FAILURE);
+	case 12:
+		printf("Descripción de la respuesta: Parameter Problem: Bad IP header (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
+		fin(id_sock);
+		exit(EXIT_FAILURE);
 	default:
 		printf("Descripción de la respuesta: unknown error (type %d, code %d)\n", echo_response.icmpHeader.Type, echo_response.icmpHeader.Code);
 		fin(id_sock);
