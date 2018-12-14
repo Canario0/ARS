@@ -94,7 +94,7 @@ int main(int argc, char const *argv[])
 		printf(FLECHA_VERDE "TTL: %u\n", echo_response.ipHeader.TTL);
 	}
 
-	// Parsea algunas combinaciones de tipo y codigo que he considerado relevantes y el resto se tratan como un error.
+	// Parsea algunas combinaciones de tipo y codigo que he considerado relevantes y el resto se tratan como un error desconocido.
 	switch (echo_response.icmpHeader.Type)
 	{
 	case 0:
@@ -221,7 +221,7 @@ void ipError(const char *in)
 /**
  * Función que crea los paquetes de ICMP Request. 
  * 
- * seq valor de tipo entero, contiene el numero de la secuencia.
+ * param seq valor de tipo entero, contiene el numero de la secuencia.
  * return ECHORequest estructura con los datos a mandar
  */
 ECHORequest icmpRequest(int seq)
@@ -282,7 +282,7 @@ ECHORequest icmpRequest(int seq)
 /**
  * Función para calcular el checksum del paquete generado.
  * 
- * request variable de tipo ECHORequest que contienen los datos sobre los que se va a calcular el checksum
+ * param request variable de tipo ECHORequest que contienen los datos sobre los que se va a calcular el checksum
  * return retorna el resultado de hacer el checksum
  */
 unsigned short int checksum(ECHORequest request)
@@ -302,6 +302,8 @@ unsigned short int checksum(ECHORequest request)
 
 /**
  * Funcion para cerrar el socket
+ * 
+ * param id_sock id del socket.
  */
 void fin(int id_sock)
 {
